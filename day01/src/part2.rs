@@ -1,11 +1,19 @@
+use std::collections::HashMap;
+
 pub fn solve(input: &str) -> u64 {
-    let (left, right): (Vec<u64>, Vec<u64>) = input
-        .lines()
-        .flat_map(|line| line.split_once("   "))
-        .map(|(lhs, rhs)| (lhs.parse::<u64>().unwrap(), rhs.parse::<u64>().unwrap()))
-        .unzip();
+    let (left, right) = input.lines().flat_map(|line| line.split_once("   ")).fold(
+        (vec![], HashMap::new()),
+        |(mut left, mut right), (lhs, rhs)| {
+            left.push(lhs.parse::<u64>().unwrap());
+            right
+                .entry(rhs.parse::<u64>().unwrap())
+                .and_modify(|x| *x += 1)
+                .or_insert(1);
+            (left, right)
+        },
+    );
     left.into_iter()
-        .map(|lhs| lhs * right.iter().filter(|rhs| lhs == **rhs).count() as u64)
+        .map(|lhs| lhs * right.get(&lhs).unwrap_or(&0))
         .sum()
 }
 
