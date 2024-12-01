@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub fn solve(input: &str) -> u64 {
     let (left, right) = input.lines().flat_map(|line| line.split_once("   ")).fold(
-        (vec![], HashMap::new()),
+        (Vec::with_capacity(1000), HashMap::with_capacity(1000)),
         |(mut left, mut right), (lhs, rhs)| {
             left.push(lhs.parse::<u64>().unwrap());
             right
