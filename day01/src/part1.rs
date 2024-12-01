@@ -1,7 +1,11 @@
+use itertools::Itertools;
+
 pub fn solve(input: &str) -> u64 {
     let (mut left, mut right): (Vec<u64>, Vec<u64>) = input
-        .lines()
-        .flat_map(|line| line.split_once("   "))
+        .split_whitespace()
+        .chunks(2)
+        .into_iter()
+        .map(|mut chunk| (chunk.next().unwrap(), chunk.next().unwrap()))
         .map(|(lhs, rhs)| (lhs.parse::<u64>().unwrap(), rhs.parse::<u64>().unwrap()))
         .unzip();
     left.sort();
