@@ -14,7 +14,7 @@ fn is_safe(line: &str) -> bool {
         || (0..levels.len()).any(|n| {
             let mut levels = levels.clone();
             levels.remove(n);
-            safe_levels(levels.iter().copied())
+            safe_levels(levels.into_iter())
         })
 }
 
