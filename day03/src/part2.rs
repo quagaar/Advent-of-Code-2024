@@ -4,7 +4,8 @@ use std::sync::OnceLock;
 static RE: OnceLock<Regex> = OnceLock::new();
 
 pub fn solve(input: &str) -> usize {
-    let rex = RE.get_or_init(|| Regex::new(r"(do\(\))|(don't\(\))|mul\((\d+),(\d+)\)").unwrap());
+    let rex =
+        RE.get_or_init(|| Regex::new(r"(do\(\))|(don't\(\))|mul\((\d{1,3}),(\d{1,3})\)").unwrap());
     let mut enabled = true;
     let mut result = 0;
     for c in rex.captures_iter(input) {

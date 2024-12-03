@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 static RE: OnceLock<Regex> = OnceLock::new();
 
 pub fn solve(input: &str) -> usize {
-    let rex = RE.get_or_init(|| Regex::new(r"mul\((\d+),(\d+)\)").unwrap());
+    let rex = RE.get_or_init(|| Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)").unwrap());
     rex.captures_iter(input)
         .map(|c| {
             let lhs = c[1].parse::<usize>().unwrap();
