@@ -6,3 +6,4 @@ members = ["day*"]
 itertools = "0.13.0"
 rayon = "1.8.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
+regex = "1.11.1"
