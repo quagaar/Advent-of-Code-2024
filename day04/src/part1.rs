@@ -16,9 +16,11 @@ pub fn solve(input: &str) -> usize {
 
     for start_row in 0..grid.len() {
         for start_col in cols.clone() {
-            for (diff_row, diff_col) in DIRECTIONS {
-                if find_word(b"XMAS", &grid, start_row, start_col, diff_row, diff_col) {
-                    xmas_count += 1;
+            if grid[start_row][start_col] == b'X' {
+                for (diff_row, diff_col) in DIRECTIONS {
+                    if check_word(b"MAS", &grid, start_row, start_col, diff_row, diff_col) {
+                        xmas_count += 1;
+                    }
                 }
             }
         }
@@ -27,7 +29,7 @@ pub fn solve(input: &str) -> usize {
     xmas_count
 }
 
-fn find_word(
+fn check_word(
     word: &[u8],
     grid: &[&[u8]],
     start_row: usize,
@@ -35,8 +37,10 @@ fn find_word(
     diff_row: isize,
     diff_col: isize,
 ) -> bool {
-    let mut rows = std::iter::successors(Some(start_row), |r| r.checked_add_signed(diff_row));
-    let mut cols = std::iter::successors(Some(start_col), |c| c.checked_add_signed(diff_col));
+    let mut rows =
+        std::iter::successors(Some(start_row), |r| r.checked_add_signed(diff_row)).skip(1);
+    let mut cols =
+        std::iter::successors(Some(start_col), |c| c.checked_add_signed(diff_col)).skip(1);
 
     for word_char in word {
         let Some(row) = rows.next() else {
