@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub fn solve(input: &str) -> usize {
     let (rules, pages) = input.split_once("\n\n").unwrap();
     let rules = decode_rules(rules);
@@ -12,33 +10,30 @@ pub fn solve(input: &str) -> usize {
         .sum()
 }
 
-fn decode_rules(rules: &str) -> HashMap<usize, Vec<usize>> {
-    rules.lines().fold(HashMap::new(), |mut acc, line| {
+fn decode_rules(rules: &str) -> [u128; 100] {
+    let mut result = [0; 100];
+    for line in rules.lines() {
         let (before, after) = line.split_once("|").unwrap();
         let before: usize = before.parse().unwrap();
         let after: usize = after.parse().unwrap();
-        acc.entry(before).or_default().push(after);
-        acc
-    })
+        result[before] |= 1 << after;
+    }
+    result
 }
 
-fn parse_pages(line: &str) -> Vec<usize> {
+fn parse_pages(line: &str) -> Vec<u8> {
     line.split(",").map(|n| n.parse().unwrap()).collect()
 }
 
-fn is_valid(pages: &[usize], rules: &HashMap<usize, Vec<usize>>) -> bool {
-    for n in 1..pages.len() {
-        if let Some(after) = rules.get(&pages[n]) {
-            if pages[..n].iter().any(|page| after.contains(page)) {
-                return false;
-            }
-        }
-    }
-    true
+fn is_valid(pages: &[u8], rules: &[u128; 100]) -> bool {
+    pages.iter().enumerate().skip(1).all(|(n, page)| {
+        let after = rules[*page as usize];
+        pages[..n].iter().all(|other| 0 == after & 1 << other)
+    })
 }
 
-fn middle_page(pages: &[usize]) -> usize {
-    pages[pages.len() / 2]
+fn middle_page(pages: &[u8]) -> usize {
+    pages[pages.len() / 2] as usize
 }
 
 #[cfg(test)]
