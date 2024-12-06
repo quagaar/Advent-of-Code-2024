@@ -3,23 +3,28 @@ use std::collections::HashSet;
 
 pub fn solve(input: &str) -> usize {
     let (map, start) = parse_input(input);
-    let mut visited = HashSet::new();
+    let mut visited = HashSet::from([start]);
+    let mut history = HashSet::new();
     let mut guard = Guard {
         location: start,
         direction: Direction::North,
     };
 
-    while let Some(next) = guard.next(&map) {
-        guard = next;
-        visited.insert(guard.location);
-    }
-
-    visited.remove(&start);
-
-    visited
-        .into_par_iter()
-        .filter(|location| guard_will_loop(&start, &map, location))
-        .count()
+    std::iter::from_fn(|| {
+        while let Some(next) = guard.next(&map) {
+            history.insert(guard);
+            let prev = guard;
+            guard = next;
+            if visited.insert(guard.location) {
+                return Some((history.clone(), prev, guard.location));
+            }
+        }
+        None
+    })
+    .par_bridge()
+    .map(|(history, guard, location)| guard_will_loop(history, guard, &map, location))
+    .filter(|x| *x)
+    .count()
 }
 
 fn parse_input(input: &str) -> (Map, Location) {
@@ -55,24 +60,27 @@ fn parse_input(input: &str) -> (Map, Location) {
     )
 }
 
-fn guard_will_loop(start: &Location, map: &Map, new_obstruction: &Location) -> bool {
-    let mut guard = Guard {
-        location: *start,
-        direction: Direction::North,
-    };
+fn guard_will_loop(
+    mut visited: HashSet<Guard>,
+    mut guard: Guard,
+    map: &Map,
+    new_obstruction: Location,
+) -> bool {
     let mut map = map.clone();
-    map.obstructions.insert(*new_obstruction);
+    map.obstructions.insert(new_obstruction);
 
-    let mut visited = HashSet::new();
-
-    while visited.insert(guard) {
-        match guard.next(&map) {
-            Some(next) => guard = next,
-            None => return false,
+    if let Some(next) = guard.next(&map) {
+        guard = next;
+        while visited.insert(guard) {
+            match guard.next(&map) {
+                Some(next) => guard = next,
+                None => return false,
+            }
         }
+        true
+    } else {
+        false
     }
-
-    true
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
