@@ -4,23 +4,25 @@ use std::collections::HashSet;
 pub fn solve(input: &str) -> usize {
     let (map, start) = parse_input(input);
     let mut visited = HashSet::new();
-    let mut guard = start;
-
-    visited.insert(guard.location);
+    let mut guard = Guard {
+        location: start,
+        direction: Direction::North,
+    };
 
     while let Some(next) = guard.next(&map) {
         guard = next;
         visited.insert(guard.location);
     }
 
+    visited.remove(&start);
+
     visited
         .into_par_iter()
-        .filter(|loc| *loc != start.location)
-        .filter(|loc| guard_will_loop(&start, &map, loc))
+        .filter(|location| guard_will_loop(&start, &map, location))
         .count()
 }
 
-fn parse_input(input: &str) -> (Map, Guard) {
+fn parse_input(input: &str) -> (Map, Location) {
     let mut obstructions = HashSet::new();
     let mut width = 0;
     let mut height = 0;
@@ -49,15 +51,15 @@ fn parse_input(input: &str) -> (Map, Guard) {
             height,
             obstructions,
         },
-        Guard {
-            location: start,
-            direction: Direction::North,
-        },
+        start,
     )
 }
 
-fn guard_will_loop(start: &Guard, map: &Map, new_obstruction: &Location) -> bool {
-    let mut guard = *start;
+fn guard_will_loop(start: &Location, map: &Map, new_obstruction: &Location) -> bool {
+    let mut guard = Guard {
+        location: *start,
+        direction: Direction::North,
+    };
     let mut map = map.clone();
     map.obstructions.insert(*new_obstruction);
 
@@ -103,28 +105,36 @@ struct Guard {
 impl Guard {
     fn next(&self, map: &Map) -> Option<Self> {
         let mut next = *self;
-        match next.direction {
-            Direction::North => next.location.row -= 1,
-            Direction::East => next.location.column += 1,
-            Direction::South => next.location.row += 1,
-            Direction::West => next.location.column -= 1,
-        }
+        next.move_forward();
         if (0..map.height).contains(&next.location.row)
             && (0..map.width).contains(&next.location.column)
         {
             if map.obstructions.contains(&next.location) {
-                next.direction = match next.direction {
-                    Direction::North => Direction::East,
-                    Direction::East => Direction::South,
-                    Direction::South => Direction::West,
-                    Direction::West => Direction::North,
-                };
                 next.location = self.location;
+                next.turn_right();
             }
             Some(next)
         } else {
             None
         }
+    }
+
+    fn move_forward(&mut self) {
+        match self.direction {
+            Direction::North => self.location.row -= 1,
+            Direction::East => self.location.column += 1,
+            Direction::South => self.location.row += 1,
+            Direction::West => self.location.column -= 1,
+        }
+    }
+
+    fn turn_right(&mut self) {
+        self.direction = match self.direction {
+            Direction::North => Direction::East,
+            Direction::East => Direction::South,
+            Direction::South => Direction::West,
+            Direction::West => Direction::North,
+        };
     }
 }
 
