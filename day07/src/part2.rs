@@ -32,16 +32,7 @@ fn is_valid(target: usize, calc: usize, numbers: &[usize]) -> bool {
 }
 
 fn concat_numbers(lhs: usize, rhs: usize) -> usize {
-    std::iter::successors(Some(rhs), |n| {
-        let next = n / 10;
-        if next > 0 {
-            Some(next)
-        } else {
-            None
-        }
-    })
-    .fold(lhs, |acc, _| acc * 10)
-        + rhs
+    (0..=rhs.ilog10()).fold(lhs, |acc, _| acc * 10) + rhs
 }
 
 #[cfg(test)]
