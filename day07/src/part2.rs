@@ -32,7 +32,27 @@ fn is_valid(target: usize, calc: usize, numbers: &[usize]) -> bool {
 }
 
 fn concat_numbers(lhs: usize, rhs: usize) -> usize {
-    (0..=rhs.ilog10()).fold(lhs, |acc, _| acc * 10) + rhs
+    if rhs < 10 {
+        lhs * 10 + rhs
+    } else if rhs < 100 {
+        lhs * 100 + rhs
+    } else if rhs < 1000 {
+        lhs * 1000 + rhs
+    } else if rhs < 10000 {
+        lhs * 10000 + rhs
+    } else if rhs < 100000 {
+        lhs * 100000 + rhs
+    } else if rhs < 1000000 {
+        lhs * 1000000 + rhs
+    } else if rhs < 10000000 {
+        lhs * 10000000 + rhs
+    } else if rhs < 100000000 {
+        lhs * 100000000 + rhs
+    } else if rhs < 1000000000 {
+        lhs * 1000000000 + rhs
+    } else {
+        (0..=rhs.ilog10()).fold(lhs, |acc, _| acc * 10) + rhs
+    }
 }
 
 #[cfg(test)]
