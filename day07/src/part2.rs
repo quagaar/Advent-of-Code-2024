@@ -38,20 +38,8 @@ fn concat_numbers(lhs: usize, rhs: usize) -> usize {
         lhs * 100 + rhs
     } else if rhs < 1000 {
         lhs * 1000 + rhs
-    } else if rhs < 10000 {
-        lhs * 10000 + rhs
-    } else if rhs < 100000 {
-        lhs * 100000 + rhs
-    } else if rhs < 1000000 {
-        lhs * 1000000 + rhs
-    } else if rhs < 10000000 {
-        lhs * 10000000 + rhs
-    } else if rhs < 100000000 {
-        lhs * 100000000 + rhs
-    } else if rhs < 1000000000 {
-        lhs * 1000000000 + rhs
     } else {
-        (0..=rhs.ilog10()).fold(lhs, |acc, _| acc * 10) + rhs
+        lhs * 10_usize.pow(rhs.ilog10() + 1) + rhs
     }
 }
 
