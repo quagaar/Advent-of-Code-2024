@@ -41,12 +41,14 @@ fn between_antinodes<'a>(
     delta_row: i16,
     delta_column: i16,
 ) -> impl Iterator<Item = Location> + 'a {
-    (1..)
-        .map(move |n| Location {
-            row: a.row - n * delta_row,
-            column: a.column - n * delta_column,
+    std::iter::successors(Some(*a), move |node| {
+        Some(Location {
+            row: node.row - delta_row,
+            column: node.column - delta_column,
         })
-        .take_while(move |location| location != b)
+    })
+    .skip(1)
+    .take_while(move |location| location != b)
 }
 
 fn node_antinodes<'a>(
@@ -55,15 +57,16 @@ fn node_antinodes<'a>(
     delta_row: i16,
     delta_column: i16,
 ) -> impl Iterator<Item = Location> + 'a {
-    (0..)
-        .map(move |n| Location {
-            row: node.row + n * delta_row,
-            column: node.column + n * delta_column,
+    std::iter::successors(Some(*node), move |node| {
+        Some(Location {
+            row: node.row + delta_row,
+            column: node.column + delta_column,
         })
-        .take_while(|location| map.contains(*location))
+    })
+    .take_while(|location| map.contains(*location))
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 struct Location {
     row: i16,
     column: i16,
