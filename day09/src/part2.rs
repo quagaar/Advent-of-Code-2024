@@ -1,11 +1,11 @@
 struct File {
     id: usize,
-    length: u8,
+    length: usize,
     position: usize,
 }
 
 struct Space {
-    length: u8,
+    length: usize,
     position: usize,
 }
 
@@ -16,7 +16,7 @@ pub fn solve(input: &str) -> usize {
     let mut position = 0;
 
     for (i, byte) in map.iter().enumerate() {
-        let length = *byte - b'0';
+        let length = (*byte - b'0') as usize;
         if i & 1 == 0 {
             files.push(File {
                 id: i / 2,
@@ -26,7 +26,7 @@ pub fn solve(input: &str) -> usize {
         } else {
             spaces.push(Space { length, position });
         }
-        position += length as usize;
+        position += length;
     }
 
     for file in files.iter_mut().rev() {
@@ -36,7 +36,7 @@ pub fn solve(input: &str) -> usize {
             .find(|space| space.length >= file.length)
         {
             file.position = space.position;
-            space.position += file.length as usize;
+            space.position += file.length;
             space.length -= file.length;
         }
     }
@@ -45,7 +45,7 @@ pub fn solve(input: &str) -> usize {
         .iter()
         .flat_map(|file| {
             (file.position..)
-                .take(file.length as usize)
+                .take(file.length)
                 .map(|position| file.id * position)
         })
         .sum()
