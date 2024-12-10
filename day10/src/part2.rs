@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 pub fn solve(input: &str) -> usize {
     let map = input
         .lines()
@@ -19,7 +17,6 @@ pub fn solve(input: &str) -> usize {
                 },
             )
         })
-        .par_bridge()
         .map(|(row, col)| walk_trails(&map, row, col, b'0'))
         .sum()
 }

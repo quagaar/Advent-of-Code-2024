@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use std::collections::HashSet;
 
 pub fn solve(input: &str) -> usize {
@@ -20,7 +19,6 @@ pub fn solve(input: &str) -> usize {
                 },
             )
         })
-        .par_bridge()
         .map(|(row, col)| {
             let mut peaks = HashSet::new();
             walk_trails(&map, row, col, b'0', &mut peaks);
