@@ -2,10 +2,10 @@ use std::cell::Cell;
 
 struct Position {
     height: u8,
-    rating: Cell<Option<usize>>,
+    rating: Cell<Option<u32>>,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> u32 {
     let map = input
         .lines()
         .map(|line| {
@@ -36,7 +36,7 @@ pub fn solve(input: &str) -> usize {
 
 const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
 
-fn walk_trails(map: &Vec<Vec<Position>>, row: usize, col: usize, height: u8) -> usize {
+fn walk_trails(map: &Vec<Vec<Position>>, row: usize, col: usize, height: u8) -> u32 {
     if height == b'9' {
         1
     } else {
