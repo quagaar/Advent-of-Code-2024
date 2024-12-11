@@ -1,21 +1,33 @@
 use rayon::prelude::*;
+use std::collections::HashMap;
 
 pub fn solve(input: &str) -> usize {
     input
         .par_split_whitespace()
-        .map(|s| count_stones(s.parse().unwrap(), 25))
+        .map(|s| {
+            let mut memo = HashMap::new();
+            count_stones(s.parse().unwrap(), 25, &mut memo)
+        })
         .sum()
 }
 
-fn count_stones(stone: usize, blinks: usize) -> usize {
+fn count_stones(stone: usize, blinks: usize, memo: &mut HashMap<(usize, usize), usize>) -> usize {
     if blinks == 0 {
         1
+    } else if let Some(count) = memo.get(&(stone, blinks)) {
+        *count
     } else if stone == 0 {
-        count_stones(1, blinks - 1)
+        let count = count_stones(1, blinks - 1, memo);
+        memo.insert((stone, blinks), count);
+        count
     } else if let Some((a, b)) = split_digits(stone) {
-        count_stones(a, blinks - 1) + count_stones(b, blinks - 1)
+        let count = count_stones(a, blinks - 1, memo) + count_stones(b, blinks - 1, memo);
+        memo.insert((stone, blinks), count);
+        count
     } else {
-        count_stones(stone * 2024, blinks - 1)
+        let count = count_stones(stone * 2024, blinks - 1, memo);
+        memo.insert((stone, blinks), count);
+        count
     }
 }
 
