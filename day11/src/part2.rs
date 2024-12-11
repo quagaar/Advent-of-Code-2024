@@ -1,13 +1,11 @@
-use rayon::prelude::*;
 use std::collections::HashMap;
 
 pub fn solve(input: &str) -> usize {
+    let mut memo = HashMap::new();
+
     input
-        .par_split_whitespace()
-        .map(|s| {
-            let mut memo = HashMap::new();
-            count_stones(s.parse().unwrap(), 75, &mut memo)
-        })
+        .split_whitespace()
+        .map(|s| count_stones(s.parse().unwrap(), 75, &mut memo))
         .sum()
 }
 
