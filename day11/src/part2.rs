@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> u64 {
     let mut memo = HashMap::new();
 
     input
@@ -9,7 +9,7 @@ pub fn solve(input: &str) -> usize {
         .sum()
 }
 
-fn count_stones(stone: usize, blinks: usize, memo: &mut HashMap<(usize, usize), usize>) -> usize {
+fn count_stones(stone: u64, blinks: u8, memo: &mut HashMap<(u64, u8), u64>) -> u64 {
     if blinks == 0 {
         1
     } else if let Some(count) = memo.get(&(stone, blinks)) {
@@ -29,7 +29,7 @@ fn count_stones(stone: usize, blinks: usize, memo: &mut HashMap<(usize, usize), 
     }
 }
 
-fn split_digits(n: usize) -> Option<(usize, usize)> {
+fn split_digits(n: u64) -> Option<(u64, u64)> {
     if n < 10 {
         None
     } else if n < 100 {
