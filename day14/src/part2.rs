@@ -11,12 +11,8 @@ fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
     let limit = robots.len() * 70 / 100;
 
     for seconds in 0.. {
-        if robots
-            .iter()
-            .filter(|robot| robot.has_neighbour(&robots))
-            .count()
-            > limit
-        {
+        if count_neighbours(&robots) > limit {
+            #[cfg(debug_assertions)]
             print_grid(&robots, width, height);
             return seconds;
         }
@@ -28,6 +24,15 @@ fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
     unreachable!("no solution found")
 }
 
+fn count_neighbours(robots: &[Robot]) -> usize {
+    robots
+        .iter()
+        .enumerate()
+        .map(|(i, robot)| robot.count_neighbours(&robots[i + 1..]))
+        .sum()
+}
+
+#[allow(dead_code)]
 fn print_grid(robots: &[Robot], width: i32, height: i32) {
     for y in 0..height {
         for x in 0..width {
@@ -92,8 +97,11 @@ impl Robot {
         )
     }
 
-    fn has_neighbour(&self, robots: &[Self]) -> bool {
-        robots.iter().any(|robot| self.is_neighbour(robot))
+    fn count_neighbours(&self, robots: &[Self]) -> usize {
+        robots
+            .iter()
+            .filter(|robot| self.is_neighbour(robot))
+            .count()
     }
 }
 
