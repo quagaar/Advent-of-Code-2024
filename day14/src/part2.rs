@@ -11,9 +11,12 @@ fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
     let limit = robots.len() * 70 / 100;
 
     for seconds in 0.. {
-        if count_neighbours(&robots) > limit {
+        let neighbours = count_neighbours(&robots);
+        if neighbours > limit {
             #[cfg(debug_assertions)]
             print_grid(&robots, width, height);
+            #[cfg(debug_assertions)]
+            println!("neighbours: {} > limit: {}", neighbours, limit);
             return seconds;
         }
         robots
