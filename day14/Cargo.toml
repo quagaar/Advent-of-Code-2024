@@ -9,6 +9,7 @@ edition = "2021"
 doctest = false
 
 [dependencies]
+rayon.workspace = true
 
 [dev-dependencies]
 criterion = { workspace = true }

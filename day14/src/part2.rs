@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 pub fn solve(input: &str) -> usize {
     find_easter_egg(input, 101, 103)
 }
@@ -29,7 +31,7 @@ fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
 
 fn count_neighbours(robots: &[Robot]) -> usize {
     robots
-        .iter()
+        .par_iter()
         .enumerate()
         .map(|(i, robot)| robot.count_neighbours(&robots[i + 1..]))
         .sum()
