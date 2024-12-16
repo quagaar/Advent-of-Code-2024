@@ -17,7 +17,7 @@
 | [Day 13](https://adventofcode.com/2024/day/13) | _56.636 µs_ | _58.185 µs_ |
 | [Day 14](https://adventofcode.com/2024/day/14) | _34.927 µs_ |  358.02 ms  |
 | [Day 15](https://adventofcode.com/2024/day/15) | _325.58 µs_ | _650.88 µs_ |
-| [Day 16](https://adventofcode.com/2024/day/16) |             |             |
+| [Day 16](https://adventofcode.com/2024/day/16) |  4.2365 ms  |  9.8895 ms  |
 | [Day 17](https://adventofcode.com/2024/day/17) |             |             |
 | [Day 18](https://adventofcode.com/2024/day/18) |             |             |
 | [Day 19](https://adventofcode.com/2024/day/19) |             |             |
