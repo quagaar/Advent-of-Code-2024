@@ -136,14 +136,38 @@ impl Instruction {
     #[allow(dead_code)]
     fn disassemble(&self) -> String {
         match self {
-            Self::Adv(operand) => format!("adv {}", operand.disassemble()),
-            Self::Bxl(value) => format!("bxl {}", value),
-            Self::Bst(operand) => format!("bst {}", operand.disassemble()),
-            Self::Jnz(value) => format!("jnz {}", value * 2),
-            Self::Bxc => "bxc".to_string(),
-            Self::Out(operand) => format!("out {}", operand.disassemble()),
-            Self::Bdv(operand) => format!("bdv {}", operand.disassemble()),
-            Self::Cdv(operand) => format!("cdv {}", operand.disassemble()),
+            Self::Adv(operand) => format!(
+                "adv {0}\t// Shift value in register A right by {0}",
+                operand.disassemble()
+            ),
+            Self::Bxl(value) => format!(
+                "bxl {0}\t// Bitwise XOR value in register B with {0}",
+                value
+            ),
+            Self::Bst(operand) => format!(
+                "bst {0}\t// Write the value of {0} modulo 8 to register B",
+                operand.disassemble()
+            ),
+            Self::Jnz(value) => format!(
+                "jnz {0}\t// Jump to instruction {0:03} if value in register A is not zero",
+                value * 2
+            ),
+            Self::Bxc => {
+                "bxc  \t// Bitwise XOR values in registers B and C, storing the result in register B"
+                    .to_string()
+            }
+            Self::Out(operand) => format!(
+                "out {0}\t// Output value of {0} modulo 8",
+                operand.disassemble()
+            ),
+            Self::Bdv(operand) => format!(
+                "bdv {0}\t// Write value in register A to register B shifted right by {0}",
+                operand.disassemble()
+            ),
+            Self::Cdv(operand) => format!(
+                "cdv {0}\t// Write value in register A to register C shifted right by {0}",
+                 operand.disassemble()
+            ),
         }
     }
 }
