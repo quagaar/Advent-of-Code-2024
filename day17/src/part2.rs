@@ -5,18 +5,19 @@ pub fn solve(input: &str) -> usize {
     println!("{}", computer.disassemble());
 
     computer
-        .program
+        .raw_program
         .iter()
         .rev()
         .fold(vec![0], |acc, next| {
             acc.into_iter()
                 .flat_map(|a| (0..8).map(move |n| a << 3 | n))
                 .filter(|&a| {
-                    let mut computer = computer.clone();
-                    computer.a = a;
-                    computer
-                        .run()
-                        .map_or(false, |output| output.first() == Some(next))
+                    let mut registers = Registers {
+                        a,
+                        ..computer.registers
+                    };
+                    let output = run_program(&computer.program, &mut registers);
+                    output.first() == Some(next)
                 })
                 .collect()
         })
@@ -25,25 +26,147 @@ pub fn solve(input: &str) -> usize {
         .expect("Not found")
 }
 
-#[derive(Debug, Clone)]
-struct Computer {
+#[derive(Debug, Clone, Copy)]
+struct Registers {
     a: usize,
     b: usize,
     c: usize,
     ip: usize,
-    program: Vec<usize>,
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Opcode {
-    Adv,
-    Bxl,
-    Bst,
-    Jnz,
+enum ComboOperand {
+    Literal(usize),
+    RegisterA,
+    RegisterB,
+    RegisterC,
+}
+
+impl ComboOperand {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::Literal(0),
+            1 => Self::Literal(1),
+            2 => Self::Literal(2),
+            3 => Self::Literal(3),
+            4 => Self::RegisterA,
+            5 => Self::RegisterB,
+            6 => Self::RegisterC,
+            7 => panic!("Reserved operand value"),
+            _ => panic!("Invalid operand"),
+        }
+    }
+
+    fn value(&self, registers: &Registers) -> usize {
+        match self {
+            Self::Literal(value) => *value,
+            Self::RegisterA => registers.a,
+            Self::RegisterB => registers.b,
+            Self::RegisterC => registers.c,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn disassemble(&self) -> &str {
+        match self {
+            Self::Literal(0) => "0",
+            Self::Literal(1) => "1",
+            Self::Literal(2) => "2",
+            Self::Literal(3) => "3",
+            Self::RegisterA => "A",
+            Self::RegisterB => "B",
+            Self::RegisterC => "C",
+            _ => panic!("Invalid operand"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Instruction {
+    Adv(ComboOperand),
+    Bxl(usize),
+    Bst(ComboOperand),
+    Jnz(usize),
     Bxc,
-    Out,
-    Bdv,
-    Cdv,
+    Out(ComboOperand),
+    Bdv(ComboOperand),
+    Cdv(ComboOperand),
+}
+
+impl Instruction {
+    fn from(opcode: usize, operand: usize) -> Self {
+        match opcode {
+            0 => Self::Adv(ComboOperand::from(operand)),
+            1 => Self::Bxl(operand),
+            2 => Self::Bst(ComboOperand::from(operand)),
+            3 => Self::Jnz(operand / 2),
+            4 => Self::Bxc,
+            5 => Self::Out(ComboOperand::from(operand)),
+            6 => Self::Bdv(ComboOperand::from(operand)),
+            7 => Self::Cdv(ComboOperand::from(operand)),
+            _ => panic!("Invalid opcode"),
+        }
+    }
+
+    fn apply(&self, registers: &mut Registers, output: &mut Vec<usize>) {
+        match self {
+            Self::Adv(operand) => {
+                registers.a >>= operand.value(registers);
+                registers.ip += 1;
+            }
+            Self::Bxl(value) => {
+                registers.b ^= *value;
+                registers.ip += 1;
+            }
+            Self::Bst(operand) => {
+                registers.b = operand.value(registers) % 8;
+                registers.ip += 1;
+            }
+            Self::Jnz(value) => {
+                if registers.a != 0 {
+                    registers.ip = *value;
+                } else {
+                    registers.ip += 1;
+                }
+            }
+            Self::Bxc => {
+                registers.b ^= registers.c;
+                registers.ip += 1;
+            }
+            Self::Out(operand) => {
+                output.push(operand.value(registers) % 8);
+                registers.ip += 1;
+            }
+            Self::Bdv(operand) => {
+                registers.b = registers.a >> operand.value(registers);
+                registers.ip += 1;
+            }
+            Self::Cdv(operand) => {
+                registers.c = registers.a >> operand.value(registers);
+                registers.ip += 1;
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    fn disassemble(&self) -> String {
+        match self {
+            Self::Adv(operand) => format!("adv {}", operand.disassemble()),
+            Self::Bxl(value) => format!("bxl {}", value),
+            Self::Bst(operand) => format!("bst {}", operand.disassemble()),
+            Self::Jnz(value) => format!("jnz {}", value * 2),
+            Self::Bxc => "bxc".to_string(),
+            Self::Out(operand) => format!("out {}", operand.disassemble()),
+            Self::Bdv(operand) => format!("bdv {}", operand.disassemble()),
+            Self::Cdv(operand) => format!("cdv {}", operand.disassemble()),
+        }
+    }
+}
+
+struct Computer {
+    registers: Registers,
+    raw_program: Vec<usize>,
+    program: Vec<Instruction>,
 }
 
 impl Computer {
@@ -53,17 +176,19 @@ impl Computer {
         let b = lines.next()?.strip_prefix("Register B: ")?.parse().ok()?;
         let c = lines.next()?.strip_prefix("Register C: ")?.parse().ok()?;
         lines.next()?;
-        let program = lines
+        let raw_program = lines
             .next()?
             .strip_prefix("Program: ")?
             .split(',')
             .flat_map(|s| s.parse())
+            .collect::<Vec<_>>();
+        let program = raw_program
+            .chunks_exact(2)
+            .map(|chunk| Instruction::from(chunk[0], chunk[1]))
             .collect();
         Some(Self {
-            a,
-            b,
-            c,
-            ip: 0,
+            registers: Registers { a, b, c, ip: 0 },
+            raw_program,
             program,
         })
     }
@@ -71,115 +196,20 @@ impl Computer {
     #[allow(dead_code)]
     fn disassemble(&self) -> String {
         self.program
-            .chunks_exact(2)
-            .map(|chunk| {
-                let opcode = Opcode::from(chunk[0]).unwrap();
-                let operand = chunk[1];
-                match opcode {
-                    Opcode::Adv => format!("adv {}", self.decode_combo_operand(operand)),
-                    Opcode::Bxl => format!("bxl {}", operand),
-                    Opcode::Bst => format!("bst {}", self.decode_combo_operand(operand)),
-                    Opcode::Jnz => format!("jnz {}", operand),
-                    Opcode::Bxc => "bxc".to_string(),
-                    Opcode::Out => format!("out {}", self.decode_combo_operand(operand)),
-                    Opcode::Bdv => format!("bdv {}", self.decode_combo_operand(operand)),
-                    Opcode::Cdv => format!("cdv {}", self.decode_combo_operand(operand)),
-                }
-            })
+            .iter()
+            .enumerate()
+            .map(|(index, instruction)| format!("{:03}: {}", index * 2, instruction.disassemble()))
             .collect::<Vec<_>>()
             .join("\n")
     }
-
-    #[allow(dead_code)]
-    fn decode_combo_operand(&self, operand: usize) -> &str {
-        match operand {
-            0 => "0",
-            1 => "1",
-            2 => "2",
-            3 => "3",
-            4 => "A",
-            5 => "B",
-            6 => "C",
-            7 => panic!("Reserved operand value"),
-            _ => panic!("Invalid operand"),
-        }
-    }
-
-    fn run(&mut self) -> Option<Vec<usize>> {
-        let mut output = vec![];
-        while self.ip < self.program.len() {
-            let opcode = Opcode::from(self.program[self.ip])?;
-            let operand = self.program[self.ip + 1];
-            match opcode {
-                Opcode::Adv => {
-                    self.a >>= self.combo_operand(operand);
-                    self.ip += 2;
-                }
-                Opcode::Bxl => {
-                    self.b ^= operand;
-                    self.ip += 2;
-                }
-                Opcode::Bst => {
-                    self.b = self.combo_operand(operand) % 8;
-                    self.ip += 2;
-                }
-                Opcode::Jnz => {
-                    if self.a != 0 {
-                        self.ip = operand;
-                    } else {
-                        self.ip += 2;
-                    }
-                }
-                Opcode::Bxc => {
-                    self.b ^= self.c;
-                    self.ip += 2;
-                }
-                Opcode::Out => {
-                    output.push(self.combo_operand(operand) % 8);
-                    self.ip += 2;
-                }
-                Opcode::Bdv => {
-                    self.b = self.a >> self.combo_operand(operand);
-                    self.ip += 2;
-                }
-                Opcode::Cdv => {
-                    self.c = self.a >> self.combo_operand(operand);
-                    self.ip += 2;
-                }
-            }
-        }
-        Some(output)
-    }
-
-    fn combo_operand(&self, operand: usize) -> usize {
-        match operand {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            3 => 3,
-            4 => self.a,
-            5 => self.b,
-            6 => self.c,
-            7 => panic!("Reserved operand value"),
-            _ => panic!("Invalid operand"),
-        }
-    }
 }
 
-impl Opcode {
-    fn from(value: usize) -> Option<Self> {
-        match value {
-            0 => Some(Self::Adv),
-            1 => Some(Self::Bxl),
-            2 => Some(Self::Bst),
-            3 => Some(Self::Jnz),
-            4 => Some(Self::Bxc),
-            5 => Some(Self::Out),
-            6 => Some(Self::Bdv),
-            7 => Some(Self::Cdv),
-            _ => None,
-        }
+fn run_program(program: &[Instruction], registers: &mut Registers) -> Vec<usize> {
+    let mut output = vec![];
+    while let Some(instruction) = program.get(registers.ip) {
+        instruction.apply(registers, &mut output);
     }
+    output
 }
 
 #[cfg(test)]
