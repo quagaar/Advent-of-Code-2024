@@ -112,7 +112,7 @@ impl Computer {
             let operand = self.program[self.ip + 1];
             match opcode {
                 Opcode::Adv => {
-                    self.a /= 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.a >>= self.combo_operand(operand);
                     self.ip += 2;
                 }
                 Opcode::Bxl => {
@@ -139,11 +139,11 @@ impl Computer {
                     self.ip += 2;
                 }
                 Opcode::Bdv => {
-                    self.b = self.a / 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.b = self.a >> self.combo_operand(operand);
                     self.ip += 2;
                 }
                 Opcode::Cdv => {
-                    self.c = self.a / 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.c = self.a >> self.combo_operand(operand);
                     self.ip += 2;
                 }
             }

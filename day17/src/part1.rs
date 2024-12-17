@@ -46,7 +46,7 @@ impl Computer {
             match opcode {
                 0 => {
                     // adv
-                    self.a /= 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.a >>= self.combo_operand(operand);
                     self.ip += 2;
                 }
                 1 => {
@@ -79,12 +79,12 @@ impl Computer {
                 }
                 6 => {
                     // bdv
-                    self.b = self.a / 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.b = self.a >> self.combo_operand(operand);
                     self.ip += 2;
                 }
                 7 => {
                     // cdv
-                    self.c = self.a / 2_usize.pow(self.combo_operand(operand) as u32);
+                    self.c = self.a >> self.combo_operand(operand);
                     self.ip += 2;
                 }
                 _ => {
