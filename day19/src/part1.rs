@@ -1,14 +1,16 @@
+use rayon::prelude::*;
+
 pub fn solve(input: &str) -> usize {
     let (towels, patterns) = input.split_once("\n\n").unwrap();
-    let towels = towels.split(", ").collect::<Vec<_>>();
+    let towels = towels.split(", ").map(|s| s.as_bytes()).collect::<Vec<_>>();
 
     patterns
-        .lines()
-        .filter(|pattern| validate_pattern(pattern, &towels))
+        .par_lines()
+        .filter(|pattern| validate_pattern(pattern.as_bytes(), &towels))
         .count()
 }
 
-fn validate_pattern(pattern: &str, towels: &[&str]) -> bool {
+fn validate_pattern(pattern: &[u8], towels: &[&[u8]]) -> bool {
     pattern.is_empty()
         || towels.iter().any(|towel| {
             pattern.starts_with(towel) && validate_pattern(&pattern[towel.len()..], towels)

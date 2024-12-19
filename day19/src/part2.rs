@@ -1,5 +1,4 @@
 use rayon::prelude::*;
-use std::collections::HashMap;
 
 pub fn solve(input: &str) -> usize {
     let (towels, patterns) = input.split_once("\n\n").unwrap();
@@ -9,19 +8,15 @@ pub fn solve(input: &str) -> usize {
     patterns
         .par_lines()
         .map(|pattern| {
-            let mut memo = HashMap::new();
-            memo.insert("".as_bytes(), 1);
+            let mut memo = vec![None; pattern.len() + 1];
+            memo[0] = Some(1);
             count_arrangements(pattern.as_bytes(), &towels, &mut memo)
         })
         .sum()
 }
 
-fn count_arrangements<'a>(
-    pattern: &'a [u8],
-    towels: &[&[u8]],
-    memo: &mut HashMap<&'a [u8], usize>,
-) -> usize {
-    if let Some(&count) = memo.get(pattern) {
+fn count_arrangements(pattern: &[u8], towels: &[&[u8]], memo: &mut [Option<usize>]) -> usize {
+    if let Some(count) = memo[pattern.len()] {
         count
     } else {
         let count = towels
@@ -32,7 +27,7 @@ fn count_arrangements<'a>(
                     .map_or(0, |remaining| count_arrangements(remaining, towels, memo))
             })
             .sum();
-        memo.insert(pattern, count);
+        memo[pattern.len()] = Some(count);
         count
     }
 }
