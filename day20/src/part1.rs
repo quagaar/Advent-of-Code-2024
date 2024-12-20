@@ -10,7 +10,8 @@ pub fn solve(input: &str) -> usize {
 
 const DIRECTIONS: [(isize, isize); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 
-type ShortcutMap = HashMap<((usize, usize), (usize, usize)), usize>;
+type Position = (usize, usize);
+type ShortcutMap = HashMap<(Position, Position), usize>;
 
 fn shortcuts(input: &str) -> ShortcutMap {
     let map = input
@@ -31,12 +32,14 @@ fn shortcuts(input: &str) -> ShortcutMap {
         .map(|(i, &(x, y))| ((x, y), i))
         .collect::<HashMap<_, _>>();
 
-    (0..route.len() - 1)
-        .flat_map(|i| shortcuts_from_position(route[i], i, &route_map, &map))
+    route
+        .into_iter()
+        .enumerate()
+        .flat_map(|(offset, position)| shortcuts_from_position(position, offset, &route_map, &map))
         .collect()
 }
 
-fn find_start_and_end(map: &[&[u8]]) -> ((usize, usize), (usize, usize)) {
+fn find_start_and_end(map: &[&[u8]]) -> (Position, Position) {
     let mut start = (0, 0);
     let mut end = (0, 0);
     for (y, row) in map.iter().enumerate() {
@@ -54,7 +57,7 @@ fn successors<'a>(
     x: usize,
     y: usize,
     map: &'a [&[u8]],
-) -> impl Iterator<Item = ((usize, usize), usize)> + 'a {
+) -> impl Iterator<Item = (Position, usize)> + 'a {
     DIRECTIONS
         .into_iter()
         .filter_map(move |(dx, dy)| {
@@ -73,16 +76,16 @@ fn successors<'a>(
 }
 
 fn shortcuts_from_position<'a>(
-    start: (usize, usize),
-    position: usize,
-    route_map: &'a HashMap<(usize, usize), usize>,
+    position: Position,
+    offset: usize,
+    route_map: &'a HashMap<Position, usize>,
     map: &'a [&[u8]],
-) -> impl Iterator<Item = (((usize, usize), (usize, usize)), usize)> + 'a {
+) -> impl Iterator<Item = ((Position, Position), usize)> + 'a {
     DIRECTIONS
         .into_iter()
         .filter_map(move |(dx, dy)| {
-            let x = start.0.checked_add_signed(dx)?;
-            let y = start.1.checked_add_signed(dy)?;
+            let x = position.0.checked_add_signed(dx)?;
+            let y = position.1.checked_add_signed(dy)?;
             let cell = map.get(y)?.get(x)?;
             if *cell == b'#' {
                 Some((x, y))
@@ -95,10 +98,10 @@ fn shortcuts_from_position<'a>(
                 let x = x.checked_add_signed(dx)?;
                 let y = y.checked_add_signed(dy)?;
                 let next = route_map.get(&(x, y))?;
-                if *next <= position + 2 {
+                if *next <= offset + 2 {
                     None
                 } else {
-                    Some(((start, (x, y)), next - position - 2))
+                    Some(((position, (x, y)), next - offset - 2))
                 }
             })
         })
