@@ -18,26 +18,21 @@ fn shortcuts(input: &str) -> ShortcutMap {
         .map(|line| line.as_bytes())
         .collect::<Vec<_>>();
     let (start, end) = find_start_and_end(&map);
-    let (route, length) = dijkstra(
+    let (route, _length) = dijkstra(
         &start,
         |&(x, y)| successors(x, y, &map),
         |position| *position == end,
     )
     .expect("no path found");
 
+    let route_map = route
+        .iter()
+        .enumerate()
+        .map(|(i, &(x, y))| ((x, y), i))
+        .collect::<HashMap<_, _>>();
+
     (0..route.len() - 1)
-        .flat_map(|i| {
-            shortcuts_from_position(&route[0..=i], end, &map).filter_map(
-                move |(start, end, extra)| {
-                    let saving = length.checked_sub(i + extra)?;
-                    if saving > 0 {
-                        Some(((start, end), saving))
-                    } else {
-                        None
-                    }
-                },
-            )
-        })
+        .flat_map(|i| shortcuts_from_position(route[i], i, &route_map, &map))
         .collect()
 }
 
@@ -78,11 +73,11 @@ fn successors<'a>(
 }
 
 fn shortcuts_from_position<'a>(
-    route: &'a [(usize, usize)],
-    end: (usize, usize),
+    start: (usize, usize),
+    position: usize,
+    route_map: &'a HashMap<(usize, usize), usize>,
     map: &'a [&[u8]],
-) -> impl Iterator<Item = ((usize, usize), (usize, usize), usize)> + 'a {
-    let start = route.last().copied().unwrap();
+) -> impl Iterator<Item = (((usize, usize), (usize, usize)), usize)> + 'a {
     DIRECTIONS
         .into_iter()
         .filter_map(move |(dx, dy)| {
@@ -99,21 +94,13 @@ fn shortcuts_from_position<'a>(
             DIRECTIONS.into_iter().filter_map(move |(dx, dy)| {
                 let x = x.checked_add_signed(dx)?;
                 let y = y.checked_add_signed(dy)?;
-                let cell = map.get(y)?.get(x)?;
-                if *cell == b'#' || route.contains(&(x, y)) {
+                let next = route_map.get(&(x, y))?;
+                if *next <= position + 2 {
                     None
                 } else {
-                    Some((x, y))
+                    Some(((start, (x, y)), next - position - 2))
                 }
             })
-        })
-        .filter_map(move |new_start| {
-            dijkstra(
-                &new_start,
-                |&(x, y)| successors(x, y, map),
-                |position| *position == end,
-            )
-            .map(|(route, length)| (start, route[0], length + 2))
         })
 }
 
