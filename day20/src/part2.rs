@@ -1,4 +1,5 @@
 use pathfinding::prelude::dijkstra;
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 pub fn solve(input: &str) -> usize {
@@ -33,9 +34,11 @@ fn shortcuts(input: &str) -> ShortcutMap {
         .collect::<HashMap<_, _>>();
 
     route
-        .into_iter()
+        .into_par_iter()
         .enumerate()
-        .flat_map(|(offset, position)| shortcuts_from_position(position, offset, &route_map, &map))
+        .flat_map(|(offset, position)| {
+            shortcuts_from_position(position, offset, &route_map, &map).par_bridge()
+        })
         .collect()
 }
 
