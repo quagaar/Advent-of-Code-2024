@@ -1,5 +1,3 @@
-use pathfinding::prelude::dijkstra;
-
 pub fn solve(input: &str) -> usize {
     input.lines().map(process_line).sum()
 }
@@ -18,150 +16,231 @@ fn process_line(line: &str) -> usize {
 fn button_sequence(buttons: &[u8]) -> Vec<u8> {
     buttons
         .iter()
-        .try_fold(
-            (b'A', vec![]),
-            |(prev_button, mut sequence), &next_button| {
-                let (path, _len) = dijkstra(
-                    &(prev_button, b'A', b'A', b'\0'),
-                    |&(a, b, c, _)| successors(a, b, c),
-                    |&(a, b, c, d)| a == next_button && b == b'A' && c == b'A' && d == b'A',
-                )?;
-                for (_, _, _, button) in path.into_iter().skip(1) {
-                    sequence.push(button);
-                }
-                Some((next_button, sequence))
-            },
-        )
-        .expect("Unable to find button sequence")
+        .fold((b'A', vec![]), |(prev, mut sequence), &next| {
+            let path = numeric_pad_paths(prev, next);
+            sequence.extend_from_slice(path);
+            (next, sequence)
+        })
+        .1
+        .into_iter()
+        .fold((b'A', vec![]), |(prev, mut sequence), next| {
+            let path = direction_pad_path(prev, next);
+            sequence.extend_from_slice(path);
+            (next, sequence)
+        })
+        .1
+        .into_iter()
+        .fold((b'A', vec![]), |(prev, mut sequence), next| {
+            let path = direction_pad_path(prev, next);
+            sequence.extend_from_slice(path);
+            (next, sequence)
+        })
         .1
 }
 
-fn successors(a: u8, b: u8, c: u8) -> Vec<((u8, u8, u8, u8), usize)> {
-    let mut result = vec![];
-    match (b, c) {
-        (b'A', b'A') => {
-            result.push(((a, b, c, b'A'), 1));
-        }
-        (_, b'A') => {
-            if let Some(x) = numeric_keypad_move(a, b) {
-                result.push(((x, b, c, b'A'), 1));
-            }
-        }
-        (_, _) => {
-            if let Some(x) = directional_keypad_move(b, c) {
-                result.push(((a, x, c, b'A'), 1));
-            }
-        }
+fn numeric_pad_paths(start: u8, end: u8) -> &'static [u8] {
+    match start {
+        b'A' => match end {
+            b'A' => "A".as_bytes(),
+            b'0' => "<A".as_bytes(),
+            b'1' => "^<<A".as_bytes(),
+            b'2' => "<^A".as_bytes(),
+            b'3' => "^A".as_bytes(),
+            b'4' => "^^<<A".as_bytes(),
+            b'5' => "<^^A".as_bytes(),
+            b'6' => "^^A".as_bytes(),
+            b'7' => "^^^<<A".as_bytes(),
+            b'8' => "<^^^A".as_bytes(),
+            b'9' => "^^^A".as_bytes(),
+            _ => &[],
+        },
+        b'0' => match end {
+            b'A' => ">A".as_bytes(),
+            b'0' => "<A".as_bytes(),
+            b'1' => "^<A".as_bytes(),
+            b'2' => "^A".as_bytes(),
+            b'3' => "^>A".as_bytes(),
+            b'4' => "^^<A".as_bytes(),
+            b'5' => "^^A".as_bytes(),
+            b'6' => "^^>A".as_bytes(),
+            b'7' => "^^^<A".as_bytes(),
+            b'8' => "^^^A".as_bytes(),
+            b'9' => "^^^>A".as_bytes(),
+            _ => &[],
+        },
+        b'1' => match end {
+            b'A' => ">>vA".as_bytes(),
+            b'0' => ">vA".as_bytes(),
+            b'1' => "A".as_bytes(),
+            b'2' => ">A".as_bytes(),
+            b'3' => ">>A".as_bytes(),
+            b'4' => "^A".as_bytes(),
+            b'5' => "^>A".as_bytes(),
+            b'6' => "^>>A".as_bytes(),
+            b'7' => "^^A".as_bytes(),
+            b'8' => "^^>A".as_bytes(),
+            b'9' => "^^>>A".as_bytes(),
+            _ => &[],
+        },
+        b'2' => match end {
+            b'A' => "v>A".as_bytes(),
+            b'0' => "vA".as_bytes(),
+            b'1' => "<A".as_bytes(),
+            b'2' => "A".as_bytes(),
+            b'3' => ">A".as_bytes(),
+            b'4' => "<^A".as_bytes(),
+            b'5' => "^A".as_bytes(),
+            b'6' => "^>A".as_bytes(),
+            b'7' => "<^^A".as_bytes(),
+            b'8' => "^^A".as_bytes(),
+            b'9' => "^^>A".as_bytes(),
+            _ => &[],
+        },
+        b'3' => match end {
+            b'A' => "vA".as_bytes(),
+            b'0' => "<vA".as_bytes(),
+            b'1' => "<<A".as_bytes(),
+            b'2' => "<A".as_bytes(),
+            b'3' => "A".as_bytes(),
+            b'4' => "<<^A".as_bytes(),
+            b'5' => "<^A".as_bytes(),
+            b'6' => "^A".as_bytes(),
+            b'7' => "<<^^A".as_bytes(),
+            b'8' => "<^^A".as_bytes(),
+            b'9' => "^^A".as_bytes(),
+            _ => &[],
+        },
+        b'4' => match end {
+            b'A' => ">>vvA".as_bytes(),
+            b'0' => ">vvA".as_bytes(),
+            b'1' => "vA".as_bytes(),
+            b'2' => "v>A".as_bytes(),
+            b'3' => "v>>A".as_bytes(),
+            b'4' => "A".as_bytes(),
+            b'5' => ">A".as_bytes(),
+            b'6' => ">>A".as_bytes(),
+            b'7' => "^A".as_bytes(),
+            b'8' => "^>A".as_bytes(),
+            b'9' => "^>>A".as_bytes(),
+            _ => &[],
+        },
+        b'5' => match end {
+            b'A' => "vv>A".as_bytes(),
+            b'0' => "vvA".as_bytes(),
+            b'1' => "<vA".as_bytes(),
+            b'2' => "vA".as_bytes(),
+            b'3' => "v>A".as_bytes(),
+            b'4' => "<A".as_bytes(),
+            b'5' => "A".as_bytes(),
+            b'6' => ">A".as_bytes(),
+            b'7' => "<^A".as_bytes(),
+            b'8' => "^A".as_bytes(),
+            b'9' => "^>A".as_bytes(),
+            _ => &[],
+        },
+        b'6' => match end {
+            b'A' => "vvA".as_bytes(),
+            b'0' => "<vvA".as_bytes(),
+            b'1' => "<<vA".as_bytes(),
+            b'2' => "<vA".as_bytes(),
+            b'3' => "vA".as_bytes(),
+            b'4' => "<<A".as_bytes(),
+            b'5' => "<A".as_bytes(),
+            b'6' => "A".as_bytes(),
+            b'7' => "<<^A".as_bytes(),
+            b'8' => "<^A".as_bytes(),
+            b'9' => "^A".as_bytes(),
+            _ => &[],
+        },
+        b'7' => match end {
+            b'A' => ">>vvvA".as_bytes(),
+            b'0' => ">vvvA".as_bytes(),
+            b'1' => "vvA".as_bytes(),
+            b'2' => "vv>A".as_bytes(),
+            b'3' => "vv>>A".as_bytes(),
+            b'4' => "vA".as_bytes(),
+            b'5' => "v>A".as_bytes(),
+            b'6' => "v>>A".as_bytes(),
+            b'7' => "A".as_bytes(),
+            b'8' => ">A".as_bytes(),
+            b'9' => ">>A".as_bytes(),
+            _ => &[],
+        },
+        b'8' => match end {
+            b'A' => "vvv>A".as_bytes(),
+            b'0' => "vvvA".as_bytes(),
+            b'1' => "<vvA".as_bytes(),
+            b'2' => "vvA".as_bytes(),
+            b'3' => "vv>A".as_bytes(),
+            b'4' => "<vA".as_bytes(),
+            b'5' => "vA".as_bytes(),
+            b'6' => "v>A".as_bytes(),
+            b'7' => "<A".as_bytes(),
+            b'8' => "A".as_bytes(),
+            b'9' => ">A".as_bytes(),
+            _ => &[],
+        },
+        b'9' => match end {
+            b'A' => "vvvA".as_bytes(),
+            b'0' => "<vvvA".as_bytes(),
+            b'1' => "<<vvA".as_bytes(),
+            b'2' => "<vvA".as_bytes(),
+            b'3' => "vvA".as_bytes(),
+            b'4' => "<<vA".as_bytes(),
+            b'5' => "<vA".as_bytes(),
+            b'6' => "vA".as_bytes(),
+            b'7' => "<<A".as_bytes(),
+            b'8' => "<A".as_bytes(),
+            b'9' => "A".as_bytes(),
+            _ => &[],
+        },
+        _ => &[],
     }
-    for &button in "<>v^".as_bytes() {
-        if let Some(x) = directional_keypad_move(c, button) {
-            result.push(((a, b, x, button), 1));
-        }
-    }
-    result
 }
 
-// fn numeric_keypad_next(button: u8) -> &'static [(u8, u8)] {
-//     match button {
-//         b'A' => &[(b'0', b'<'), (b'3', b'^')],
-//         b'1' => &[(b'2', b'>'), (b'4', b'^')],
-//         b'2' => &[(b'1', b'<'), (b'3', b'>'), (b'5', b'^')],
-//         b'3' => &[(b'2', b'<'), (b'6', b'^'), (b'A', b'v')],
-//         b'4' => &[(b'1', b'v'), (b'5', b'>'), (b'7', b'^')],
-//         b'5' => &[(b'2', b'v'), (b'4', b'<'), (b'6', b'>'), (b'8', b'^')],
-//         b'6' => &[(b'3', b'v'), (b'5', b'<'), (b'9', b'^')],
-//         b'7' => &[(b'4', b'v'), (b'8', b'>')],
-//         b'8' => &[(b'5', b'v'), (b'7', b'<'), (b'9', b'>')],
-//         b'9' => &[(b'6', b'v'), (b'8', b'<')],
-//         b'0' => &[(b'2', b'^'), (b'A', b'>')],
-//         _ => panic!("Invalid button: {}", button),
-//     }
-// }
-
-fn numeric_keypad_move(button: u8, direction: u8) -> Option<u8> {
-    match direction {
-        b'^' => match button {
-            b'4' => Some(b'7'),
-            b'5' => Some(b'8'),
-            b'6' => Some(b'9'),
-            b'1' => Some(b'4'),
-            b'2' => Some(b'5'),
-            b'3' => Some(b'6'),
-            b'0' => Some(b'2'),
-            b'A' => Some(b'3'),
-            _ => None,
+fn direction_pad_path(start: u8, end: u8) -> &'static [u8] {
+    match start {
+        b'^' => match end {
+            b'^' => "A".as_bytes(),
+            b'A' => ">A".as_bytes(),
+            b'<' => "v<A".as_bytes(),
+            b'v' => "vA".as_bytes(),
+            b'>' => "v>A".as_bytes(),
+            _ => &[],
         },
-        b'<' => match button {
-            b'8' => Some(b'7'),
-            b'9' => Some(b'8'),
-            b'5' => Some(b'4'),
-            b'6' => Some(b'5'),
-            b'2' => Some(b'1'),
-            b'3' => Some(b'2'),
-            b'A' => Some(b'0'),
-            _ => None,
+        b'A' => match end {
+            b'^' => "<A".as_bytes(),
+            b'A' => "A".as_bytes(),
+            b'<' => "v<<A".as_bytes(),
+            b'v' => "<vA".as_bytes(),
+            b'>' => "vA".as_bytes(),
+            _ => &[],
         },
-        b'v' => match button {
-            b'7' => Some(b'4'),
-            b'8' => Some(b'5'),
-            b'9' => Some(b'6'),
-            b'4' => Some(b'1'),
-            b'5' => Some(b'2'),
-            b'6' => Some(b'3'),
-            b'2' => Some(b'0'),
-            b'3' => Some(b'A'),
-            _ => None,
+        b'<' => match end {
+            b'^' => ">^A".as_bytes(),
+            b'A' => ">>^A".as_bytes(),
+            b'<' => "A".as_bytes(),
+            b'v' => ">A".as_bytes(),
+            b'>' => ">>A".as_bytes(),
+            _ => &[],
         },
-        b'>' => match button {
-            b'7' => Some(b'8'),
-            b'8' => Some(b'9'),
-            b'4' => Some(b'5'),
-            b'5' => Some(b'6'),
-            b'1' => Some(b'2'),
-            b'2' => Some(b'3'),
-            b'0' => Some(b'A'),
-            _ => None,
+        b'v' => match end {
+            b'^' => "^A".as_bytes(),
+            b'A' => "^>A".as_bytes(),
+            b'<' => "<A".as_bytes(),
+            b'v' => "A".as_bytes(),
+            b'>' => ">A".as_bytes(),
+            _ => &[],
         },
-        _ => None,
-    }
-}
-
-// fn directional_keypad_next(button: u8) -> &'static [u8] {
-//     match button {
-//         b'A' => &[b'^', b'>'],
-//         b'^' => &[b'v', b'A'],
-//         b'<' => &[b'v'],
-//         b'v' => &[b'<', b'^', b'>'],
-//         b'>' => &[b'v', b'A'],
-//         _ => panic!("Invalid button: {}", button),
-//     }
-// }
-
-fn directional_keypad_move(button: u8, direction: u8) -> Option<u8> {
-    match direction {
-        b'^' => match button {
-            b'>' => Some(b'A'),
-            b'v' => Some(b'^'),
-            _ => None,
+        b'>' => match end {
+            b'^' => "<^A".as_bytes(),
+            b'A' => "^A".as_bytes(),
+            b'<' => "<<A".as_bytes(),
+            b'v' => "<A".as_bytes(),
+            b'>' => "A".as_bytes(),
+            _ => &[],
         },
-        b'<' => match button {
-            b'A' => Some(b'^'),
-            b'>' => Some(b'v'),
-            b'v' => Some(b'<'),
-            _ => None,
-        },
-        b'v' => match button {
-            b'A' => Some(b'>'),
-            b'^' => Some(b'v'),
-            _ => None,
-        },
-        b'>' => match button {
-            b'^' => Some(b'A'),
-            b'<' => Some(b'v'),
-            b'v' => Some(b'>'),
-            _ => None,
-        },
-        _ => None,
+        _ => &[],
     }
 }
 
