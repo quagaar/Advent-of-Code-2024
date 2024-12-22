@@ -6,12 +6,7 @@ pub fn solve(input: &str) -> usize {
     input
         .par_lines()
         .map(get_sequences)
-        .reduce_with(|mut a, mut b| {
-            for (k, v) in b.drain() {
-                *a.entry(k).or_default() += v;
-            }
-            a
-        })
+        .reduce_with(merge_maps)
         .unwrap()
         .into_values()
         .max()
@@ -39,6 +34,16 @@ fn get_sequences(line: &str) -> HashMap<[i8; 4], usize> {
             acc.entry([a.0, b.0, c.0, d.0]).or_insert(d.1 as usize);
             acc
         })
+}
+
+fn merge_maps(
+    mut a: HashMap<[i8; 4], usize>,
+    mut b: HashMap<[i8; 4], usize>,
+) -> HashMap<[i8; 4], usize> {
+    for (k, v) in b.drain() {
+        *a.entry(k).or_default() += v;
+    }
+    a
 }
 
 #[cfg(test)]
