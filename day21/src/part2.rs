@@ -1,7 +1,8 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 pub fn solve(input: &str) -> usize {
-    input.lines().map(process_line).sum()
+    input.par_lines().map(process_line).sum()
 }
 
 fn process_line(line: &str) -> usize {
