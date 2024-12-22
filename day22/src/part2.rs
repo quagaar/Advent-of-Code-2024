@@ -30,7 +30,7 @@ fn get_sequences(line: &str) -> HashMap<[i8; 4], usize> {
             (prev - next, next)
         })
         .tuple_windows()
-        .fold(HashMap::new(), |mut acc, (a, b, c, d)| {
+        .fold(HashMap::with_capacity(2000), |mut acc, (a, b, c, d)| {
             acc.entry([a.0, b.0, c.0, d.0]).or_insert(d.1 as usize);
             acc
         })
