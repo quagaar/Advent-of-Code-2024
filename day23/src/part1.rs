@@ -1,11 +1,27 @@
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 pub fn solve(input: &str) -> usize {
     let graph = read_graph(input);
-    let mut nodes: Vec<_> = graph.keys().copied().collect();
-    nodes.sort();
-    let mut scratch = vec![];
-    count_interconnected(&nodes, &graph, &mut scratch, 3)
+
+    graph
+        .iter()
+        .flat_map(|(node, others)| {
+            others
+                .iter()
+                .tuple_combinations()
+                .map(move |(a, b)| (node, a, b))
+                .filter(|(node, a, b)| node < a && node < b)
+                .filter_map(|(node, a, b)| {
+                    if graph.get(a)?.contains(b) {
+                        Some((node, a, b))
+                    } else {
+                        None
+                    }
+                })
+        })
+        .filter(|(a, b, c)| a.starts_with("t") || b.starts_with("t") || c.starts_with("t"))
+        .count()
 }
 
 fn read_graph(input: &str) -> HashMap<&str, HashSet<&str>> {
@@ -15,39 +31,6 @@ fn read_graph(input: &str) -> HashMap<&str, HashSet<&str>> {
         graph.entry(b).or_default().insert(a);
         graph
     })
-}
-
-fn count_interconnected<'a>(
-    nodes: &[&'a str],
-    graph: &HashMap<&'a str, HashSet<&'a str>>,
-    scratch: &mut Vec<&'a str>,
-    depth: usize,
-) -> usize {
-    if depth == 0 {
-        if scratch.iter().any(|node| node.starts_with("t")) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-    nodes
-        .iter()
-        .enumerate()
-        .filter_map(|(i, &node)| {
-            if let Some(others) = graph.get(node) {
-                if scratch.iter().all(|node| others.contains(node)) {
-                    scratch.push(node);
-                    let count = count_interconnected(&nodes[i + 1..], graph, scratch, depth - 1);
-                    scratch.pop();
-                    Some(count)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        })
-        .sum()
 }
 
 #[cfg(test)]
