@@ -26,4 +26,4 @@
 | [Day 22](https://adventofcode.com/2024/day/22) |  _671.46 µs_  |   75.793 ms   |
 | [Day 23](https://adventofcode.com/2024/day/23) |   1.3323 ms   |   538.01 ms   |
 | [Day 24](https://adventofcode.com/2024/day/24) |  _123.05 µs_  |  _38.054 µs_  |
-| [Day 25](https://adventofcode.com/2024/day/25) |               |               |
+| [Day 25](https://adventofcode.com/2024/day/25) |  _249.21 µs_  |               |
