@@ -1,21 +1,30 @@
 use itertools::Itertools;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    input.lines().filter(|x| is_safe(x)).count()
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Error parsing input: {0}")]
+    ParsingError(#[from] std::num::ParseIntError),
 }
 
-fn is_safe(line: &str) -> bool {
-    let levels = line
-        .split_whitespace()
-        .map(|x| x.parse::<i32>().unwrap())
-        .collect_vec();
+pub fn solve(input: &str) -> Result<usize, Error> {
+    input
+        .lines()
+        .try_fold(0, |acc, x| if is_safe(x)? { Ok(acc + 1) } else { Ok(acc) })
+}
 
-    safe_levels(levels.iter().copied())
+fn is_safe(line: &str) -> Result<bool, Error> {
+    let levels: Vec<_> = line
+        .split_whitespace()
+        .map(|x| x.parse::<i32>())
+        .try_collect()?;
+
+    Ok(safe_levels(levels.iter().copied())
         || (0..levels.len()).any(|n| {
             let mut levels = levels.clone();
             levels.remove(n);
             safe_levels(levels.into_iter())
-        })
+        }))
 }
 
 fn safe_levels(levels: impl Iterator<Item = i32>) -> bool {
@@ -50,7 +59,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 4);
     }
 
@@ -59,7 +68,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

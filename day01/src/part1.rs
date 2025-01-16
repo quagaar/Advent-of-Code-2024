@@ -1,19 +1,27 @@
 use itertools::Itertools;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> u64 {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Error parsing input: {0}")]
+    ParsingError(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<u64, Error> {
     let (mut left, mut right): (Vec<u64>, Vec<u64>) = input
         .split_whitespace()
-        .chunks(2)
+        .tuples()
+        .map(|(lhs, rhs)| Ok((lhs.parse::<u64>()?, rhs.parse::<u64>()?)))
+        .collect::<Result<Vec<_>, std::num::ParseIntError>>()?
         .into_iter()
-        .map(|mut chunk| (chunk.next().unwrap(), chunk.next().unwrap()))
-        .map(|(lhs, rhs)| (lhs.parse::<u64>().unwrap(), rhs.parse::<u64>().unwrap()))
         .unzip();
     left.sort();
     right.sort();
-    left.into_iter()
+    Ok(left
+        .into_iter()
         .zip(right)
         .map(|(lhs, rhs)| lhs.abs_diff(rhs))
-        .sum()
+        .sum())
 }
 
 #[cfg(test)]
@@ -24,7 +32,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 11);
     }
 
@@ -33,7 +41,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

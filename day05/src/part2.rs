@@ -1,29 +1,44 @@
-pub fn solve(input: &str) -> usize {
-    let (rules, pages) = input.split_once("\n\n").unwrap();
-    let rules = decode_rules(rules);
+use std::num::ParseIntError;
+use thiserror::Error;
 
-    pages
-        .lines()
-        .map(parse_pages)
-        .filter(|pages| !is_valid(pages, &rules))
-        .map(|pages| sort_pages(pages, &rules))
-        .map(|pages| middle_page(&pages))
-        .sum()
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Unable to split input")]
+    UnableToSplitInput,
+    #[error("Missing rule delimiter")]
+    MissingRuleDelimiter,
+    #[error("Unable to parse number, reason: {0}")]
+    UnableToParseNumber(#[from] ParseIntError),
 }
 
-fn decode_rules(rules: &str) -> [u128; 100] {
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let (rules, pages) = input.split_once("\n\n").ok_or(Error::UnableToSplitInput)?;
+    let rules = decode_rules(rules)?;
+
+    let mut total = 0;
+    for line in pages.lines() {
+        let pages = parse_pages(line)?;
+        if !is_valid(&pages, &rules) {
+            let pages = sort_pages(pages, &rules);
+            total += middle_page(&pages);
+        }
+    }
+    Ok(total)
+}
+
+fn decode_rules(rules: &str) -> Result<[u128; 100], Error> {
     let mut result = [0; 100];
     for line in rules.lines() {
-        let (before, after) = line.split_once("|").unwrap();
-        let before: usize = before.parse().unwrap();
-        let after: usize = after.parse().unwrap();
+        let (before, after) = line.split_once("|").ok_or(Error::MissingRuleDelimiter)?;
+        let before: usize = before.parse()?;
+        let after: usize = after.parse()?;
         result[before] |= 1 << after;
     }
-    result
+    Ok(result)
 }
 
-fn parse_pages(line: &str) -> Vec<u8> {
-    line.split(",").map(|n| n.parse().unwrap()).collect()
+fn parse_pages(line: &str) -> Result<Vec<u8>, ParseIntError> {
+    line.split(",").map(|n| n.parse()).collect()
 }
 
 fn is_valid(pages: &[u8], rules: &[u128; 100]) -> bool {
@@ -64,7 +79,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 123);
     }
 
@@ -73,7 +88,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

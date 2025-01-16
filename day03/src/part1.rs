@@ -1,17 +1,26 @@
 use regex::Regex;
 use std::sync::OnceLock;
+use thiserror::Error;
 
-static RE: OnceLock<Regex> = OnceLock::new();
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Error parsing regex: {0}")]
+    RegexError(#[from] &'static regex::Error),
+    #[error("Error parsing input: {0}")]
+    ParsingError(#[from] std::num::ParseIntError),
+}
 
-pub fn solve(input: &str) -> usize {
-    let rex = RE.get_or_init(|| Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)").unwrap());
-    rex.captures_iter(input)
-        .map(|c| {
-            let lhs = c[1].parse::<usize>().unwrap();
-            let rhs = c[2].parse::<usize>().unwrap();
-            lhs * rhs
-        })
-        .sum()
+static RE: OnceLock<Result<Regex, regex::Error>> = OnceLock::new();
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let rex = RE
+        .get_or_init(|| Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)"))
+        .as_ref()?;
+    rex.captures_iter(input).try_fold(0, |acc, c| {
+        let lhs = c[1].parse::<usize>()?;
+        let rhs = c[2].parse::<usize>()?;
+        Ok(acc + lhs * rhs)
+    })
 }
 
 #[cfg(test)]
@@ -22,7 +31,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 161);
     }
 
@@ -31,7 +40,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

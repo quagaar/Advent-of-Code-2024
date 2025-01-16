@@ -1,4 +1,9 @@
-pub fn solve(input: &str) -> usize {
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let grid = input.lines().map(|x| x.as_bytes()).collect::<Vec<_>>();
     let start_cols = 1..grid[0].len() - 1;
     let mut xmas_count = 0;
@@ -19,7 +24,7 @@ pub fn solve(input: &str) -> usize {
         }
     }
 
-    xmas_count
+    Ok(xmas_count)
 }
 
 #[cfg(test)]
@@ -30,7 +35,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 9);
     }
 
@@ -39,7 +44,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

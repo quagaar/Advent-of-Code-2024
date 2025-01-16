@@ -1,3 +1,8 @@
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
+
 const DIRECTIONS: [(isize, isize); 8] = [
     (-1, -1),
     (-1, 0),
@@ -9,7 +14,7 @@ const DIRECTIONS: [(isize, isize); 8] = [
     (1, 1),
 ];
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let grid = input.lines().map(|x| x.as_bytes()).collect::<Vec<_>>();
     let cols = 0..grid[0].len();
     let mut xmas_count = 0;
@@ -26,7 +31,7 @@ pub fn solve(input: &str) -> usize {
         }
     }
 
-    xmas_count
+    Ok(xmas_count)
 }
 
 fn check_word(
@@ -70,7 +75,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 18);
     }
 
@@ -79,7 +84,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

@@ -1,32 +1,46 @@
 use itertools::Itertools;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    input.lines().filter(|x| is_safe(x)).count()
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Error parsing input: {0}")]
+    ParsingError(#[from] std::num::ParseIntError),
 }
 
-fn is_safe(line: &str) -> bool {
-    line.split_whitespace()
-        .map(|x| x.parse::<i32>().unwrap())
+pub fn solve(input: &str) -> Result<usize, Error> {
+    input
+        .lines()
+        .try_fold(0, |acc, x| if is_safe(x)? { Ok(acc + 1) } else { Ok(acc) })
+}
+
+fn is_safe(line: &str) -> Result<bool, Error> {
+    let mut prev = 0;
+    for diff in line
+        .split_whitespace()
+        .map(|x| x.parse::<i32>())
         .tuple_windows()
-        .map(|(a, b)| a - b)
-        .try_fold(0, |prev, diff| match diff {
+        .map(|(a, b)| Ok::<_, Error>(a? - b?))
+    {
+        let diff = diff?;
+        match diff {
             1..=3 => {
                 if prev >= 0 {
-                    Some(diff)
+                    prev = diff;
                 } else {
-                    None
+                    return Ok(false);
                 }
             }
             -3..=-1 => {
                 if prev <= 0 {
-                    Some(diff)
+                    prev = diff;
                 } else {
-                    None
+                    return Ok(false);
                 }
             }
-            _ => None,
-        })
-        .is_some()
+            _ => return Ok(false),
+        }
+    }
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -37,7 +51,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 2);
     }
 
@@ -46,7 +60,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }
