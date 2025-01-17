@@ -1,11 +1,16 @@
 use itertools::{chain, Itertools};
 use num_integer::Integer;
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = Map::parse(input);
 
-    map.antennas
+    Ok(map
+        .antennas
         .iter()
         .flat_map(|(_, locations)| {
             locations
@@ -14,7 +19,7 @@ pub fn solve(input: &str) -> usize {
                 .flat_map(|(a, b)| antinodes(a, b, &map))
         })
         .collect::<HashSet<Location>>()
-        .len()
+        .len())
 }
 
 fn antinodes<'a>(
@@ -118,7 +123,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 34);
     }
 
@@ -127,7 +132,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

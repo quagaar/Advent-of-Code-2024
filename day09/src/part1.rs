@@ -1,8 +1,13 @@
-pub fn solve(input: &str) -> usize {
-    process_disk_map(input.trim_end().as_bytes())
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    Ok(process_disk_map(input.trim_end().as_bytes())
         .enumerate()
         .map(|(position, id)| position * id)
-        .sum()
+        .sum())
 }
 
 fn process_disk_map(map: &[u8]) -> impl Iterator<Item = usize> + '_ {
@@ -50,7 +55,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 1928);
     }
 
@@ -59,7 +64,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

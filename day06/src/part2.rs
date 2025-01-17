@@ -1,7 +1,11 @@
 use rayon::prelude::*;
 use std::collections::HashSet;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let (map, start) = parse_input(input);
     let mut visited = HashSet::from([start]);
     let mut history = HashSet::new();
@@ -10,7 +14,7 @@ pub fn solve(input: &str) -> usize {
         direction: Direction::North,
     };
 
-    std::iter::from_fn(|| {
+    Ok(std::iter::from_fn(|| {
         while let Some(next) = guard.next(&map) {
             history.insert(guard);
             let prev = guard;
@@ -24,7 +28,7 @@ pub fn solve(input: &str) -> usize {
     .par_bridge()
     .map(|(history, guard, location)| guard_will_loop(history, guard, &map, location))
     .filter(|x| *x)
-    .count()
+    .count())
 }
 
 fn parse_input(input: &str) -> (Map, Location) {
@@ -154,7 +158,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 6);
     }
 
@@ -163,7 +167,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

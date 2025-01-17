@@ -1,11 +1,15 @@
 use std::cell::Cell;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
 
 struct Position {
     height: u8,
     rating: Cell<Option<u32>>,
 }
 
-pub fn solve(input: &str) -> u32 {
+pub fn solve(input: &str) -> Result<u32, Error> {
     let map = input
         .lines()
         .map(|line| {
@@ -19,7 +23,8 @@ pub fn solve(input: &str) -> u32 {
         })
         .collect::<Vec<Vec<_>>>();
 
-    map.iter()
+    Ok(map
+        .iter()
         .enumerate()
         .flat_map(|(row, data)| {
             data.iter().enumerate().filter_map(move |(col, cell)| {
@@ -31,7 +36,7 @@ pub fn solve(input: &str) -> u32 {
             })
         })
         .map(|(row, col)| walk_trails(&map, row, col, b'0'))
-        .sum()
+        .sum())
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
@@ -77,7 +82,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 81);
     }
 
@@ -86,7 +91,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

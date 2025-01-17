@@ -1,10 +1,15 @@
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = Map::parse(input);
 
-    map.antennas
+    Ok(map
+        .antennas
         .iter()
         .flat_map(|(_, locations)| {
             locations
@@ -14,7 +19,7 @@ pub fn solve(input: &str) -> usize {
         })
         .filter(|location| map.contains(*location))
         .collect::<HashSet<Location>>()
-        .len()
+        .len())
 }
 
 fn antinodes(a: &Location, b: &Location) -> [Location; 2] {
@@ -84,7 +89,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 14);
     }
 
@@ -93,7 +98,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

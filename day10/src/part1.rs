@@ -1,12 +1,17 @@
 use std::collections::HashSet;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = input
         .lines()
         .map(|line| line.as_bytes())
         .collect::<Vec<_>>();
 
-    map.iter()
+    Ok(map
+        .iter()
         .enumerate()
         .flat_map(|(row, data)| {
             data.iter().enumerate().filter_map(
@@ -24,7 +29,7 @@ pub fn solve(input: &str) -> usize {
             walk_trails(&map, row, col, b'0', &mut peaks);
             peaks.len()
         })
-        .sum()
+        .sum())
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
@@ -64,7 +69,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 36);
     }
 
@@ -73,7 +78,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

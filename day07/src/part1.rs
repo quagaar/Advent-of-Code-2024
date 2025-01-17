@@ -1,21 +1,45 @@
 use rayon::prelude::*;
+use std::num::ParseIntError;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    input.par_lines().flat_map(process_line).sum()
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Empty input")]
+    EmptyInput,
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Unable to parse number, reason: {0}")]
+    UnableToParseNumber(#[from] ParseIntError),
 }
 
-fn process_line(line: &str) -> Option<usize> {
-    let (test_value, numbers) = line.split_once(": ")?;
-    let test_value = test_value.parse::<usize>().unwrap();
+pub fn solve(input: &str) -> Result<usize, Error> {
+    input
+        .par_lines()
+        .map(process_line)
+        .try_reduce(
+            || None,
+            |a, b| match (a, b) {
+                (Some(a), Some(b)) => Ok(Some(a + b)),
+                (Some(a), None) => Ok(Some(a)),
+                (None, Some(b)) => Ok(Some(b)),
+                (None, None) => Ok(None),
+            },
+        )
+        .map(|x| x.unwrap_or(0))
+}
+
+fn process_line(line: &str) -> Result<Option<usize>, Error> {
+    let (test_value, numbers) = line.split_once(": ").ok_or(Error::MissingDelimiter)?;
+    let test_value = test_value.parse::<usize>()?;
     let numbers = numbers
         .split_whitespace()
-        .flat_map(|s| s.parse::<usize>())
-        .collect::<Vec<_>>();
+        .map(|s| s.parse::<usize>())
+        .collect::<Result<Vec<_>, ParseIntError>>()?;
 
     if is_valid(test_value, numbers[0], &numbers[1..]) {
-        Some(test_value)
+        Ok(Some(test_value))
     } else {
-        None
+        Ok(None)
     }
 }
 
@@ -38,7 +62,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 3749);
     }
 
@@ -47,7 +71,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

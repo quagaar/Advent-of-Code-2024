@@ -1,6 +1,10 @@
 use std::collections::HashSet;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let (map, start) = parse_input(input);
     let mut visited = HashSet::from([start]);
     let mut guard = Guard {
@@ -13,7 +17,7 @@ pub fn solve(input: &str) -> usize {
         visited.insert(guard.location);
     }
 
-    visited.len()
+    Ok(visited.len())
 }
 
 fn parse_input(input: &str) -> (Map, Location) {
@@ -119,7 +123,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 41);
     }
 
@@ -127,8 +131,8 @@ mod tests {
     #[cfg(part1_txt)]
     #[test]
     fn result() {
-        let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let expected: usize = include_str!("../part1.txt").trim().parse().unwrap();
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

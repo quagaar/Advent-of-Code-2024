@@ -1,3 +1,8 @@
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
+
 struct File {
     id: usize,
     length: usize,
@@ -9,7 +14,7 @@ struct Space {
     position: usize,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = input.trim_end().as_bytes();
     let mut files = Vec::with_capacity(map.len() / 2 + 1);
     let mut spaces = Vec::with_capacity(map.len() / 2);
@@ -41,14 +46,14 @@ pub fn solve(input: &str) -> usize {
         }
     }
 
-    files
+    Ok(files
         .iter()
         .flat_map(|file| {
             (file.position..)
                 .take(file.length)
                 .map(|position| file.id * position)
         })
-        .sum()
+        .sum())
 }
 
 #[cfg(test)]
@@ -59,7 +64,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 2858);
     }
 
@@ -68,7 +73,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }
