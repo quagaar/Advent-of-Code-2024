@@ -1,14 +1,27 @@
 use rayon::prelude::*;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing position prefix")]
+    MissingPositionPrefix,
+    #[error("Missing velocity prefix")]
+    MissingVelocityPrefix,
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Invalid input number: {0}")]
+    InvalidInputNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     find_easter_egg(input, 101, 103)
 }
 
-fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
+fn find_easter_egg(input: &str, width: i32, height: i32) -> Result<usize, Error> {
     let mut robots = input
         .lines()
         .map(|line| Robot::parse(line, width, height))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, Error>>()?;
 
     let limit = robots.len() * 70 / 100;
 
@@ -19,7 +32,7 @@ fn find_easter_egg(input: &str, width: i32, height: i32) -> usize {
             print_grid(&robots, width, height);
             #[cfg(debug_assertions)]
             println!("neighbours: {} > limit: {}", neighbours, limit);
-            return seconds;
+            return Ok(seconds);
         }
         robots
             .iter_mut()
@@ -64,24 +77,28 @@ struct Robot {
 }
 
 impl Robot {
-    fn parse(line: &str, width: i32, height: i32) -> Self {
-        let (pos, vec) = line.strip_prefix("p=").unwrap().split_once(" v=").unwrap();
-        let (x, y) = pos.split_once(',').unwrap();
-        let (dx, dy) = vec.split_once(',').unwrap();
-        let mut dx = dx.parse().unwrap();
-        let mut dy = dy.parse().unwrap();
+    fn parse(line: &str, width: i32, height: i32) -> Result<Self, Error> {
+        let (pos, vec) = line
+            .strip_prefix("p=")
+            .ok_or(Error::MissingPositionPrefix)?
+            .split_once(" v=")
+            .ok_or(Error::MissingVelocityPrefix)?;
+        let (x, y) = pos.split_once(',').ok_or(Error::MissingDelimiter)?;
+        let (dx, dy) = vec.split_once(',').ok_or(Error::MissingDelimiter)?;
+        let mut dx = dx.parse()?;
+        let mut dy = dy.parse()?;
         if dx < 0 {
             dx += width
         }
         if dy < 0 {
             dy += height
         }
-        Robot {
-            x: x.parse().unwrap(),
-            y: y.parse().unwrap(),
+        Ok(Robot {
+            x: x.parse()?,
+            y: y.parse()?,
             dx,
             dy,
-        }
+        })
     }
 
     fn next(self, width: i32, height: i32) -> Self {
@@ -119,7 +136,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

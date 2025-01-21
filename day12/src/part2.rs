@@ -1,4 +1,8 @@
 use std::{cell::Cell, collections::HashSet};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
 
 struct Plot {
     plant: u8,
@@ -11,7 +15,7 @@ struct Region {
     sides: usize,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = input
         .lines()
         .map(|line| {
@@ -25,7 +29,8 @@ pub fn solve(input: &str) -> usize {
         })
         .collect::<Vec<_>>();
 
-    map.iter()
+    Ok(map
+        .iter()
         .enumerate()
         .flat_map(|(row, data)| {
             data.iter()
@@ -43,7 +48,7 @@ pub fn solve(input: &str) -> usize {
                 })
         })
         .map(|region| region.area * region.sides)
-        .sum()
+        .sum())
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
@@ -147,31 +152,31 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 80);
     }
 
     #[test]
     fn example2() {
-        let result = solve(EXAMPLE2);
+        let result = solve(EXAMPLE2).unwrap();
         assert_eq!(result, 436);
     }
 
     #[test]
     fn example4() {
-        let result = solve(EXAMPLE4);
+        let result = solve(EXAMPLE4).unwrap();
         assert_eq!(result, 236);
     }
 
     #[test]
     fn example5() {
-        let result = solve(EXAMPLE5);
+        let result = solve(EXAMPLE5).unwrap();
         assert_eq!(result, 368);
     }
 
     #[test]
     fn example3() {
-        let result = solve(EXAMPLE3);
+        let result = solve(EXAMPLE3).unwrap();
         assert_eq!(result, 1206);
     }
 
@@ -180,7 +185,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

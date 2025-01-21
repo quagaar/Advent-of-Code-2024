@@ -1,20 +1,34 @@
-pub fn solve(input: &str) -> i32 {
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing position prefix")]
+    MissingPositionPrefix,
+    #[error("Missing velocity prefix")]
+    MissingVelocityPrefix,
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Invalid input number: {0}")]
+    InvalidInputNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<i32, Error> {
     safety_factor(input, 101, 103)
 }
 
-fn safety_factor(input: &str, width: i32, height: i32) -> i32 {
-    input
+fn safety_factor(input: &str, width: i32, height: i32) -> Result<i32, Error> {
+    Ok(input
         .lines()
-        .map(|line| Robot::parse(line).simulate(width, height, 100))
-        .fold([0; 4], |mut acc, robot| {
-            let quadrant = robot.quadrant(width, height);
+        .map(|line| Ok::<_, Error>(Robot::parse(line)?.simulate(width, height, 100)))
+        .try_fold([0; 4], |mut acc, robot| {
+            let quadrant = robot?.quadrant(width, height);
             if quadrant < 4 {
                 acc[quadrant] += 1;
             }
-            acc
-        })
+            Ok::<_, Error>(acc)
+        })?
         .into_iter()
-        .product()
+        .product())
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -26,16 +40,20 @@ struct Robot {
 }
 
 impl Robot {
-    fn parse(line: &str) -> Self {
-        let (pos, vec) = line.strip_prefix("p=").unwrap().split_once(" v=").unwrap();
-        let (x, y) = pos.split_once(',').unwrap();
-        let (dx, dy) = vec.split_once(',').unwrap();
-        Robot {
-            x: x.parse().unwrap(),
-            y: y.parse().unwrap(),
-            dx: dx.parse().unwrap(),
-            dy: dy.parse().unwrap(),
-        }
+    fn parse(line: &str) -> Result<Self, Error> {
+        let (pos, vec) = line
+            .strip_prefix("p=")
+            .ok_or(Error::MissingPositionPrefix)?
+            .split_once(" v=")
+            .ok_or(Error::MissingVelocityPrefix)?;
+        let (x, y) = pos.split_once(',').ok_or(Error::MissingDelimiter)?;
+        let (dx, dy) = vec.split_once(',').ok_or(Error::MissingDelimiter)?;
+        Ok(Robot {
+            x: x.parse()?,
+            y: y.parse()?,
+            dx: dx.parse()?,
+            dy: dy.parse()?,
+        })
     }
 
     fn simulate(self, width: i32, height: i32, seconds: i32) -> Self {
@@ -82,7 +100,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = safety_factor(EXAMPLE, 11, 7);
+        let result = safety_factor(EXAMPLE, 11, 7).unwrap();
         assert_eq!(result, 12);
     }
 
@@ -91,7 +109,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

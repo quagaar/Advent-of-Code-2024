@@ -1,12 +1,19 @@
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> u64 {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Invalid input number: {0}")]
+    InvalidInputNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<u64, Error> {
     let mut memo = HashMap::new();
 
     input
         .split_whitespace()
-        .map(|s| count_stones(s.parse().unwrap(), 75, &mut memo))
-        .sum()
+        .map(|s| Ok::<u64, Error>(count_stones(s.parse()?, 75, &mut memo)))
+        .try_fold(0, |acc, n| Ok(acc + n?))
 }
 
 fn count_stones(stone: u64, blinks: u8, memo: &mut HashMap<(u64, u8), u64>) -> u64 {
@@ -81,7 +88,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 65601038650482);
     }
 
@@ -90,7 +97,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

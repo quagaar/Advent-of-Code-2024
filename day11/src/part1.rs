@@ -1,14 +1,21 @@
 use rayon::prelude::*;
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> u64 {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Invalid input number: {0}")]
+    InvalidInputNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<u64, Error> {
     input
         .par_split_whitespace()
         .map(|s| {
             let mut memo = HashMap::new();
-            count_stones(s.parse().unwrap(), 25, &mut memo)
+            Ok(count_stones(s.parse()?, 25, &mut memo))
         })
-        .sum()
+        .try_reduce(|| 0, |a, b| Ok(a + b))
 }
 
 fn count_stones(stone: u64, blinks: u8, memo: &mut HashMap<(u64, u8), u64>) -> u64 {
@@ -83,7 +90,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 55312);
     }
 
@@ -92,7 +99,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

@@ -1,42 +1,63 @@
-pub fn solve(input: &str) -> i64 {
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing input line")]
+    MissingInputLine,
+    #[error("Missing button prefix")]
+    MissingButtonPrefix,
+    #[error("Missing prize prefix")]
+    MissingPrizePrefix,
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Invalid input number: {0}")]
+    InvalidInputNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<i64, Error> {
     input
         .split("\n\n")
         .map(parse_machine)
-        .filter_map(calculate_cost)
-        .sum()
+        .try_fold(0, |acc, machine| {
+            if let Some(cost) = calculate_cost(machine?) {
+                Ok(acc + cost)
+            } else {
+                Ok(acc)
+            }
+        })
 }
 
-fn parse_machine(input: &str) -> [i64; 6] {
+fn parse_machine(input: &str) -> Result<[i64; 6], Error> {
     let mut lines = input.lines();
     let (ax, ay) = lines
         .next()
-        .unwrap()
+        .ok_or(Error::MissingInputLine)?
         .strip_prefix("Button A: X")
-        .unwrap()
+        .ok_or(Error::MissingButtonPrefix)?
         .split_once(", Y")
-        .unwrap();
+        .ok_or(Error::MissingDelimiter)?;
     let (bx, by) = lines
         .next()
-        .unwrap()
+        .ok_or(Error::MissingInputLine)?
         .strip_prefix("Button B: X")
-        .unwrap()
+        .ok_or(Error::MissingButtonPrefix)?
         .split_once(", Y")
-        .unwrap();
+        .ok_or(Error::MissingDelimiter)?;
     let (px, py) = lines
         .next()
-        .unwrap()
+        .ok_or(Error::MissingInputLine)?
         .strip_prefix("Prize: X=")
-        .unwrap()
+        .ok_or(Error::MissingPrizePrefix)?
         .split_once(", Y=")
-        .unwrap();
-    [
-        ax.parse().unwrap(),
-        ay.parse().unwrap(),
-        bx.parse().unwrap(),
-        by.parse().unwrap(),
-        px.parse().unwrap(),
-        py.parse().unwrap(),
-    ]
+        .ok_or(Error::MissingDelimiter)?;
+    Ok([
+        ax.parse()?,
+        ay.parse()?,
+        bx.parse()?,
+        by.parse()?,
+        px.parse()?,
+        py.parse()?,
+    ])
 }
 
 fn calculate_cost([ax, ay, bx, by, px, py]: [i64; 6]) -> Option<i64> {
@@ -94,7 +115,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 875318608908);
     }
 
@@ -103,7 +124,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

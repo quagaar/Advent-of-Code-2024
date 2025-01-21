@@ -1,4 +1,8 @@
 use std::cell::Cell;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
 
 struct Plot {
     plant: u8,
@@ -11,7 +15,7 @@ struct Region {
     perimeter: usize,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let map = input
         .lines()
         .map(|line| {
@@ -25,7 +29,8 @@ pub fn solve(input: &str) -> usize {
         })
         .collect::<Vec<_>>();
 
-    map.iter()
+    Ok(map
+        .iter()
         .enumerate()
         .flat_map(|(row, data)| {
             data.iter()
@@ -45,7 +50,7 @@ pub fn solve(input: &str) -> usize {
                 })
         })
         .map(|region| region.area * region.perimeter)
-        .sum()
+        .sum())
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
@@ -84,19 +89,19 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 140);
     }
 
     #[test]
     fn example2() {
-        let result = solve(EXAMPLE2);
+        let result = solve(EXAMPLE2).unwrap();
         assert_eq!(result, 772);
     }
 
     #[test]
     fn example3() {
-        let result = solve(EXAMPLE3);
+        let result = solve(EXAMPLE3).unwrap();
         assert_eq!(result, 1930);
     }
 
@@ -105,7 +110,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }
