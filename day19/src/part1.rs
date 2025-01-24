@@ -1,13 +1,20 @@
 use rayon::prelude::*;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    let (towels, patterns) = input.split_once("\n\n").unwrap();
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing blank line")]
+    MissingBlankLine,
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let (towels, patterns) = input.split_once("\n\n").ok_or(Error::MissingBlankLine)?;
     let towels = towels.split(", ").map(|s| s.as_bytes()).collect::<Vec<_>>();
 
-    patterns
+    Ok(patterns
         .par_lines()
         .filter(|pattern| validate_pattern(pattern.as_bytes(), &towels))
-        .count()
+        .count())
 }
 
 fn validate_pattern(pattern: &[u8], towels: &[&[u8]]) -> bool {
@@ -25,7 +32,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 6);
     }
 
@@ -34,7 +41,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

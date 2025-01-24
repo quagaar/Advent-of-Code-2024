@@ -1,5 +1,14 @@
 use pathfinding::prelude::dijkstra;
 use std::iter::once;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Start or end not found")]
+    StartOrEndNotFound,
+    #[error("No path to end found")]
+    NoPathToEndFound,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -16,22 +25,20 @@ struct Node {
     direction: Direction,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let maze = input
         .lines()
         .map(|line| line.as_bytes())
         .collect::<Vec<_>>();
-    let Some((start, end)) = find_start_and_end(&maze) else {
-        panic!("Start or end not found");
-    };
+    let (start, end) = find_start_and_end(&maze).ok_or(Error::StartOrEndNotFound)?;
 
     dijkstra(
         &start,
         |node| get_successors(node, &maze),
         |node| node.row == end.0 && node.column == end.1,
     )
-    .expect("No path to end found")
-    .1
+    .ok_or(Error::NoPathToEndFound)
+    .map(|(_, cost)| cost)
 }
 
 fn find_start_and_end(maze: &[&[u8]]) -> Option<(Node, (usize, usize))> {
@@ -113,13 +120,13 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 7036);
     }
 
     #[test]
     fn example2() {
-        let result = solve(EXAMPLE2);
+        let result = solve(EXAMPLE2).unwrap();
         assert_eq!(result, 11048);
     }
 
@@ -128,7 +135,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

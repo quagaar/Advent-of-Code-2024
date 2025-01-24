@@ -1,18 +1,25 @@
 use rayon::prelude::*;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    let (towels, patterns) = input.split_once("\n\n").unwrap();
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing blank line")]
+    MissingBlankLine,
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let (towels, patterns) = input.split_once("\n\n").ok_or(Error::MissingBlankLine)?;
     let mut towels = towels.split(", ").map(|s| s.as_bytes()).collect::<Vec<_>>();
     towels.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
-    patterns
+    Ok(patterns
         .par_lines()
         .map(|pattern| {
             let mut memo = vec![None; pattern.len() + 1];
             memo[0] = Some(1);
             count_arrangements(pattern.as_bytes(), &towels, &mut memo)
         })
-        .sum()
+        .sum())
 }
 
 fn count_arrangements(pattern: &[u8], towels: &[&[u8]], memo: &mut [Option<usize>]) -> usize {
@@ -40,7 +47,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 16);
     }
 
@@ -49,7 +56,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

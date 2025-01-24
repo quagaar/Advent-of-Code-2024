@@ -1,5 +1,14 @@
 use pathfinding::prelude::astar_bag;
 use std::{collections::HashSet, iter::once};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Start or end not found")]
+    StartOrEndNotFound,
+    #[error("No path to end found")]
+    NoPathToEndFound,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -16,14 +25,12 @@ struct Node {
     direction: Direction,
 }
 
-pub fn solve(input: &str) -> usize {
+pub fn solve(input: &str) -> Result<usize, Error> {
     let maze = input
         .lines()
         .map(|line| line.as_bytes())
         .collect::<Vec<_>>();
-    let Some((start, end)) = find_start_and_end(&maze) else {
-        panic!("Start or end not found");
-    };
+    let (start, end) = find_start_and_end(&maze).ok_or(Error::StartOrEndNotFound)?;
 
     astar_bag(
         &start,
@@ -31,11 +38,13 @@ pub fn solve(input: &str) -> usize {
         |node| node.row.abs_diff(end.0) + node.column.abs_diff(end.1),
         |node| node.row == end.0 && node.column == end.1,
     )
-    .expect("No path to end found")
-    .0
-    .flat_map(|nodes| nodes.into_iter().map(|node| (node.row, node.column)))
-    .collect::<HashSet<_>>()
-    .len()
+    .ok_or(Error::NoPathToEndFound)
+    .map(|(solutions, _)| {
+        solutions
+            .flat_map(|nodes| nodes.into_iter().map(|node| (node.row, node.column)))
+            .collect::<HashSet<_>>()
+            .len()
+    })
 }
 
 fn find_start_and_end(maze: &[&[u8]]) -> Option<(Node, (usize, usize))> {
@@ -117,13 +126,13 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 45);
     }
 
     #[test]
     fn example2() {
-        let result = solve(EXAMPLE2);
+        let result = solve(EXAMPLE2).unwrap();
         assert_eq!(result, 64);
     }
 
@@ -132,7 +141,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

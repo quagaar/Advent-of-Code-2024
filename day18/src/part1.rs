@@ -1,22 +1,32 @@
 use pathfinding::prelude::dijkstra;
 use std::collections::HashSet;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Failed to parse number: {0}")]
+    FailedToParseNumber(#[from] std::num::ParseIntError),
+    #[error("No path to end found")]
+    NoPathToEndFound,
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     count_steps(input, 71, 71, 1024)
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
-fn count_steps(input: &str, width: usize, height: usize, bytes: usize) -> usize {
+fn count_steps(input: &str, width: usize, height: usize, bytes: usize) -> Result<usize, Error> {
     let corrupted = input
         .lines()
         .take(bytes)
         .map(|line| {
-            line.split_once(',')
-                .map(|(x, y)| (x.parse::<usize>().unwrap(), y.parse::<usize>().unwrap()))
-                .unwrap()
+            let (x, y) = line.split_once(',').ok_or(Error::MissingDelimiter)?;
+            Ok((x.parse::<usize>()?, y.parse::<usize>()?))
         })
-        .collect::<HashSet<_>>();
+        .collect::<Result<HashSet<_>, Error>>()?;
     let start = (0_usize, 0_usize);
     let end = (width - 1, height - 1);
 
@@ -38,8 +48,8 @@ fn count_steps(input: &str, width: usize, height: usize, bytes: usize) -> usize 
         },
         |&position| position == end,
     )
-    .unwrap()
-    .1
+    .ok_or(Error::NoPathToEndFound)
+    .map(|(_, cost)| cost)
 }
 
 #[cfg(test)]
@@ -50,7 +60,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = count_steps(EXAMPLE, 7, 7, 12);
+        let result = count_steps(EXAMPLE, 7, 7, 12).unwrap();
         assert_eq!(result, 22);
     }
 
@@ -59,7 +69,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

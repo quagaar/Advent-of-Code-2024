@@ -1,12 +1,21 @@
 use pathfinding::prelude::dijkstra;
 use rayon::prelude::*;
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    shortcuts(input)
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Start or end not found")]
+    StartOrEndNotFound,
+    #[error("No path found")]
+    NoPathFound,
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    Ok(shortcuts(input)?
         .into_iter()
         .filter(|&(_, t)| t >= 100)
-        .count()
+        .count())
 }
 
 const DIRECTIONS: [(isize, isize); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
@@ -14,18 +23,18 @@ const DIRECTIONS: [(isize, isize); 4] = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 type Position = (usize, usize);
 type ShortcutMap = HashMap<(Position, Position), usize>;
 
-fn shortcuts(input: &str) -> ShortcutMap {
+fn shortcuts(input: &str) -> Result<ShortcutMap, Error> {
     let map = input
         .lines()
         .map(|line| line.as_bytes())
         .collect::<Vec<_>>();
-    let (start, end) = find_start_and_end(&map);
+    let (start, end) = find_start_and_end(&map).ok_or(Error::StartOrEndNotFound)?;
     let (route, _length) = dijkstra(
         &start,
         |&(x, y)| successors(x, y, &map),
         |position| *position == end,
     )
-    .expect("no path found");
+    .ok_or(Error::NoPathFound)?;
 
     let route_map = route
         .iter()
@@ -33,27 +42,27 @@ fn shortcuts(input: &str) -> ShortcutMap {
         .map(|(i, &(x, y))| ((x, y), i))
         .collect::<HashMap<_, _>>();
 
-    route
+    Ok(route
         .into_par_iter()
         .enumerate()
         .flat_map(|(offset, position)| {
             shortcuts_from_position(position, offset, &route_map, &map).par_bridge()
         })
-        .collect()
+        .collect())
 }
 
-fn find_start_and_end(map: &[&[u8]]) -> (Position, Position) {
-    let mut start = (0, 0);
-    let mut end = (0, 0);
+fn find_start_and_end(map: &[&[u8]]) -> Option<(Position, Position)> {
+    let mut start = None;
+    let mut end = None;
     for (y, row) in map.iter().enumerate() {
         if let Some(x) = row.iter().position(|&c| c == b'S') {
-            start = (x, y);
+            start = Some((x, y));
         }
         if let Some(x) = row.iter().position(|&c| c == b'E') {
-            end = (x, y);
+            end = Some((x, y));
         }
     }
-    (start, end)
+    Some((start?, end?))
 }
 
 fn successors<'a>(
@@ -130,7 +139,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = shortcuts(EXAMPLE);
+        let result = shortcuts(EXAMPLE).unwrap();
         println!("{:?}", result);
         assert_eq!(result.iter().filter(|&(_, &t)| t == 50).count(), 32);
         assert_eq!(result.iter().filter(|&(_, &t)| t == 52).count(), 31);
@@ -153,7 +162,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

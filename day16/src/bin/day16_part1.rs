@@ -1,5 +1,6 @@
 use day16::{part1, INPUT};
 
-fn main() {
-    println!("{:?}", part1::solve(INPUT));
+fn main() -> Result<(), part1::Error> {
+    println!("{:?}", part1::solve(INPUT)?);
+    Ok(())
 }

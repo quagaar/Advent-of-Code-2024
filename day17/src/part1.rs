@@ -1,14 +1,39 @@
-pub fn solve(input: &str) -> String {
-    let mut computer = Computer::parse(input).expect("Unable to parse input");
+use std::num::ParseIntError;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing register {0} line")]
+    MissingRegisterLine(char),
+    #[error("Invalid register {0} prefix")]
+    InvalidRegisterPrefix(char),
+    #[error("Missing blank line")]
+    MissingBlankLine,
+    #[error("Missing program line")]
+    MissingProgramLine,
+    #[error("Invalid program prefix")]
+    InvalidProgramPrefix,
+    #[error("Failed to parse number: {0}")]
+    FailedToParseNumber(#[from] std::num::ParseIntError),
+    #[error("Invalid opcode: {0}")]
+    InvalidOpcode(usize),
+    #[error("Reserved operand value")]
+    ReservedOperandValue,
+    #[error("Invalid operand")]
+    InvalidOperand,
+}
+
+pub fn solve(input: &str) -> Result<String, Error> {
+    let mut computer = Computer::parse(input)?;
 
     #[cfg(debug_assertions)]
     println!("{}", computer.disassemble());
 
-    run_program(&computer.program, &mut computer.registers)
+    Ok(run_program(&computer.program, &mut computer.registers)
         .into_iter()
         .map(|n| n.to_string())
         .collect::<Vec<_>>()
-        .join(",")
+        .join(","))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,17 +53,17 @@ enum ComboOperand {
 }
 
 impl ComboOperand {
-    fn from(value: usize) -> Self {
+    fn from(value: usize) -> Result<Self, Error> {
         match value {
-            0 => Self::Literal(0),
-            1 => Self::Literal(1),
-            2 => Self::Literal(2),
-            3 => Self::Literal(3),
-            4 => Self::RegisterA,
-            5 => Self::RegisterB,
-            6 => Self::RegisterC,
-            7 => panic!("Reserved operand value"),
-            _ => panic!("Invalid operand"),
+            0 => Ok(Self::Literal(0)),
+            1 => Ok(Self::Literal(1)),
+            2 => Ok(Self::Literal(2)),
+            3 => Ok(Self::Literal(3)),
+            4 => Ok(Self::RegisterA),
+            5 => Ok(Self::RegisterB),
+            6 => Ok(Self::RegisterC),
+            7 => Err(Error::ReservedOperandValue),
+            _ => Err(Error::InvalidOperand),
         }
     }
 
@@ -61,7 +86,7 @@ impl ComboOperand {
             Self::RegisterA => "A",
             Self::RegisterB => "B",
             Self::RegisterC => "C",
-            _ => panic!("Invalid operand"),
+            _ => "Invalid operand",
         }
     }
 }
@@ -79,17 +104,17 @@ enum Instruction {
 }
 
 impl Instruction {
-    fn from(opcode: usize, operand: usize) -> Self {
+    fn from(opcode: usize, operand: usize) -> Result<Self, Error> {
         match opcode {
-            0 => Self::Adv(ComboOperand::from(operand)),
-            1 => Self::Bxl(operand),
-            2 => Self::Bst(ComboOperand::from(operand)),
-            3 => Self::Jnz(operand / 2),
-            4 => Self::Bxc,
-            5 => Self::Out(ComboOperand::from(operand)),
-            6 => Self::Bdv(ComboOperand::from(operand)),
-            7 => Self::Cdv(ComboOperand::from(operand)),
-            _ => panic!("Invalid opcode"),
+            0 => Ok(Self::Adv(ComboOperand::from(operand)?)),
+            1 => Ok(Self::Bxl(operand)),
+            2 => Ok(Self::Bst(ComboOperand::from(operand)?)),
+            3 => Ok(Self::Jnz(operand / 2)),
+            4 => Ok(Self::Bxc),
+            5 => Ok(Self::Out(ComboOperand::from(operand)?)),
+            6 => Ok(Self::Bdv(ComboOperand::from(operand)?)),
+            7 => Ok(Self::Cdv(ComboOperand::from(operand)?)),
+            _ => Err(Error::InvalidOpcode(opcode)),
         }
     }
 
@@ -178,23 +203,40 @@ struct Computer {
 }
 
 impl Computer {
-    fn parse(input: &str) -> Option<Self> {
+    fn parse(input: &str) -> Result<Self, Error> {
         let mut lines = input.lines();
-        let a = lines.next()?.strip_prefix("Register A: ")?.parse().ok()?;
-        let b = lines.next()?.strip_prefix("Register B: ")?.parse().ok()?;
-        let c = lines.next()?.strip_prefix("Register C: ")?.parse().ok()?;
-        lines.next()?;
+        let a = lines
+            .next()
+            .ok_or(Error::MissingRegisterLine('A'))?
+            .strip_prefix("Register A: ")
+            .ok_or(Error::InvalidRegisterPrefix('A'))?
+            .parse()?;
+        let b = lines
+            .next()
+            .ok_or(Error::MissingRegisterLine('B'))?
+            .strip_prefix("Register B: ")
+            .ok_or(Error::InvalidRegisterPrefix('B'))?
+            .parse()?;
+        let c = lines
+            .next()
+            .ok_or(Error::MissingRegisterLine('C'))?
+            .strip_prefix("Register C: ")
+            .ok_or(Error::InvalidRegisterPrefix('C'))?
+            .parse()?;
+        lines.next().ok_or(Error::MissingBlankLine)?;
         let raw_program = lines
-            .next()?
-            .strip_prefix("Program: ")?
+            .next()
+            .ok_or(Error::MissingProgramLine)?
+            .strip_prefix("Program: ")
+            .ok_or(Error::InvalidProgramPrefix)?
             .split(',')
-            .flat_map(|s| s.parse())
-            .collect::<Vec<_>>();
+            .map(|s| s.parse())
+            .collect::<Result<Vec<_>, ParseIntError>>()?;
         let program = raw_program
             .chunks_exact(2)
             .map(|chunk| Instruction::from(chunk[0], chunk[1]))
-            .collect();
-        Some(Self {
+            .collect::<Result<_, _>>()?;
+        Ok(Self {
             registers: Registers { a, b, c, ip: 0 },
             program,
         })
@@ -227,7 +269,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, "4,6,3,5,6,3,5,2,1,0");
     }
 
@@ -236,7 +278,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

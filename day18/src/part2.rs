@@ -1,9 +1,18 @@
 use pathfinding::prelude::dijkstra;
 use std::collections::HashSet;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> String {
-    let (x, y) = fist_blocker(input, 71, 71);
-    format!("{},{}", x, y)
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+    #[error("Failed to parse number: {0}")]
+    FailedToParseNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<String, Error> {
+    let (x, y) = fist_blocker(input, 71, 71)?;
+    Ok(format!("{},{}", x, y))
 }
 
 struct GridSpace {
@@ -21,15 +30,14 @@ impl GridSpace {
 
 const DIRECTIONS: [(isize, isize); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
-fn fist_blocker(input: &str, width: usize, height: usize) -> (usize, usize) {
+fn fist_blocker(input: &str, width: usize, height: usize) -> Result<(usize, usize), Error> {
     let corrupted = input
         .lines()
         .map(|line| {
-            line.split_once(',')
-                .map(|(x, y)| (x.parse::<usize>().unwrap(), y.parse::<usize>().unwrap()))
-                .unwrap()
+            let (x, y) = line.split_once(',').ok_or(Error::MissingDelimiter)?;
+            Ok((x.parse::<usize>()?, y.parse::<usize>()?))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, Error>>()?;
 
     let grid_space = GridSpace {
         width,
@@ -50,7 +58,7 @@ fn fist_blocker(input: &str, width: usize, height: usize) -> (usize, usize) {
         }
     }
 
-    corrupted[high]
+    Ok(corrupted[high])
 }
 
 fn is_blocked(corrupted: &[(usize, usize)], grid_space: &GridSpace) -> bool {
@@ -85,7 +93,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = fist_blocker(EXAMPLE, 7, 7);
+        let result = fist_blocker(EXAMPLE, 7, 7).unwrap();
         assert_eq!(result, (6, 1));
     }
 
@@ -94,7 +102,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }
