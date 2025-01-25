@@ -1,16 +1,20 @@
-pub fn solve(input: &str) -> usize {
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Failed to parse number: {0}")]
+    FailedToParseNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     input.lines().map(process_line).sum()
 }
 
-fn process_line(line: &str) -> usize {
+fn process_line(line: &str) -> Result<usize, Error> {
     let buttons = line.as_bytes();
-    let code: usize = line
-        .trim_start_matches('0')
-        .trim_end_matches('A')
-        .parse()
-        .unwrap();
+    let code: usize = line.trim_start_matches('0').trim_end_matches('A').parse()?;
     let sequence = button_sequence(buttons);
-    sequence.len() * code
+    Ok(sequence.len() * code)
 }
 
 fn button_sequence(buttons: &[u8]) -> Vec<u8> {
@@ -253,7 +257,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 126384);
     }
 
@@ -285,7 +289,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

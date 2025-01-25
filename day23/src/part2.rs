@@ -1,22 +1,32 @@
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
 
-pub fn solve(input: &str) -> String {
-    let graph = read_graph(input);
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+}
+
+pub fn solve(input: &str) -> Result<String, Error> {
+    let graph = read_graph(input)?;
     let mut nodes: Vec<_> = graph.keys().copied().collect();
     nodes.sort();
     let mut result = vec![];
     let mut scratch = vec![];
     find_largest_fully_connected_subgraph(&nodes, &graph, &mut scratch, &mut result);
-    result.join(",")
+    Ok(result.join(","))
 }
 
-fn read_graph(input: &str) -> HashMap<&str, HashSet<&str>> {
-    input.lines().fold(HashMap::new(), |mut graph, line| {
-        let (a, b) = line.split_once('-').unwrap();
-        graph.entry(a).or_default().insert(b);
-        graph.entry(b).or_default().insert(a);
-        graph
-    })
+fn read_graph(input: &str) -> Result<HashMap<&str, HashSet<&str>>, Error> {
+    input.lines().try_fold(
+        HashMap::new(),
+        |mut graph: HashMap<&str, HashSet<&str>>, line| {
+            let (a, b) = line.split_once('-').ok_or(Error::MissingDelimiter)?;
+            graph.entry(a).or_default().insert(b);
+            graph.entry(b).or_default().insert(a);
+            Ok(graph)
+        },
+    )
 }
 
 fn find_largest_fully_connected_subgraph<'a>(
@@ -47,7 +57,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, "co,de,ka,ta");
     }
 
@@ -56,7 +66,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

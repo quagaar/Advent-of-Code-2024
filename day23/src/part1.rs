@@ -1,10 +1,17 @@
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    let graph = read_graph(input);
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing delimiter")]
+    MissingDelimiter,
+}
 
-    graph
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let graph = read_graph(input)?;
+
+    Ok(graph
         .iter()
         .flat_map(|(node, others)| {
             others
@@ -21,16 +28,19 @@ pub fn solve(input: &str) -> usize {
                 })
         })
         .filter(|(a, b, c)| a.starts_with("t") || b.starts_with("t") || c.starts_with("t"))
-        .count()
+        .count())
 }
 
-fn read_graph(input: &str) -> HashMap<&str, HashSet<&str>> {
-    input.lines().fold(HashMap::new(), |mut graph, line| {
-        let (a, b) = line.split_once('-').unwrap();
-        graph.entry(a).or_default().insert(b);
-        graph.entry(b).or_default().insert(a);
-        graph
-    })
+fn read_graph(input: &str) -> Result<HashMap<&str, HashSet<&str>>, Error> {
+    input.lines().try_fold(
+        HashMap::new(),
+        |mut graph: HashMap<&str, HashSet<&str>>, line| {
+            let (a, b) = line.split_once('-').ok_or(Error::MissingDelimiter)?;
+            graph.entry(a).or_default().insert(b);
+            graph.entry(b).or_default().insert(a);
+            Ok(graph)
+        },
+    )
 }
 
 #[cfg(test)]
@@ -41,7 +51,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 7);
     }
 
@@ -50,7 +60,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

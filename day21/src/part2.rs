@@ -1,19 +1,22 @@
 use rayon::prelude::*;
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Failed to parse number: {0}")]
+    FailedToParseNumber(#[from] std::num::ParseIntError),
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     input.par_lines().map(process_line).sum()
 }
 
-fn process_line(line: &str) -> usize {
+fn process_line(line: &str) -> Result<usize, Error> {
     let buttons = line.as_bytes();
-    let code: usize = line
-        .trim_start_matches('0')
-        .trim_end_matches('A')
-        .parse()
-        .unwrap();
+    let code: usize = line.trim_start_matches('0').trim_end_matches('A').parse()?;
     let sequence_length = button_sequence_length(buttons);
-    sequence_length * code
+    Ok(sequence_length * code)
 }
 
 fn button_sequence_length(buttons: &[u8]) -> usize {
@@ -263,7 +266,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 154115708116294);
     }
 
@@ -272,7 +275,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

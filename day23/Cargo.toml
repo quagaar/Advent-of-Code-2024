@@ -17,3 +17,4 @@ harness = false
 
 [dependencies]
 itertools.workspace = true
+thiserror.workspace = true

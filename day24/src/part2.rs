@@ -1,6 +1,27 @@
-pub fn solve(input: &str) -> String {
-    let (_start_values, gates) = input.split_once("\n\n").unwrap();
-    let gates = gates.lines().map(parse_logic_gate).collect::<Vec<_>>();
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing blank line")]
+    MissingBlankLine,
+    #[error("Missing gate output delimiter")]
+    MissingGateOutputDelimiter,
+    #[error("Missing gate left hand side")]
+    MissingGateLeftHandSide,
+    #[error("Missing gate operation")]
+    MissingGateOperation,
+    #[error("Invalid gate operation: {0}")]
+    InvalidGateOperation(String),
+    #[error("Missing gate right hand side")]
+    MissingGateRightHandSide,
+}
+
+pub fn solve(input: &str) -> Result<String, Error> {
+    let (_start_values, gates) = input.split_once("\n\n").ok_or(Error::MissingBlankLine)?;
+    let gates = gates
+        .lines()
+        .map(parse_logic_gate)
+        .collect::<Result<Vec<_>, Error>>()?;
 
     let mut half_adds = vec![];
     let mut full_adds = vec![];
@@ -109,7 +130,7 @@ pub fn solve(input: &str) -> String {
     }
 
     results.sort();
-    results.join(",")
+    Ok(results.join(","))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -126,23 +147,25 @@ struct LogicGate<'a> {
     operation: LogicOperation,
 }
 
-fn parse_logic_gate(line: &str) -> LogicGate<'_> {
-    let (gate, output) = line.split_once(" -> ").unwrap();
+fn parse_logic_gate(line: &str) -> Result<LogicGate<'_>, Error> {
+    let (gate, output) = line
+        .split_once(" -> ")
+        .ok_or(Error::MissingGateOutputDelimiter)?;
     let mut parts = gate.split_whitespace();
-    let lhs = parts.next().unwrap();
-    let operation = match parts.next().unwrap() {
+    let lhs = parts.next().ok_or(Error::MissingGateLeftHandSide)?;
+    let operation = match parts.next().ok_or(Error::MissingGateOperation)? {
         "AND" => LogicOperation::And,
         "OR" => LogicOperation::Or,
         "XOR" => LogicOperation::Xor,
-        _ => unreachable!(),
+        op => return Err(Error::InvalidGateOperation(op.to_owned())),
     };
-    let rhs = parts.next().unwrap();
-    LogicGate {
+    let rhs = parts.next().ok_or(Error::MissingGateRightHandSide)?;
+    Ok(LogicGate {
         lhs,
         rhs,
         output,
         operation,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -153,7 +176,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, "z00,z01");
     }
 
@@ -162,7 +185,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part2.txt").trim();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

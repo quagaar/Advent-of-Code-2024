@@ -1,16 +1,42 @@
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub fn solve(input: &str) -> usize {
-    let (start_values, gates) = input.split_once("\n\n").unwrap();
-    let mut gates = gates.lines().map(parse_logic_gate).collect::<Vec<_>>();
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Missing blank line")]
+    MissingBlankLine,
+    #[error("Missing input value delimiter")]
+    MissingInputValueDelimiter,
+    #[error("Missing gate output delimiter")]
+    MissingGateOutputDelimiter,
+    #[error("Missing gate left hand side")]
+    MissingGateLeftHandSide,
+    #[error("Missing gate operation")]
+    MissingGateOperation,
+    #[error("Invalid gate operation: {0}")]
+    InvalidGateOperation(String),
+    #[error("Missing gate right hand side")]
+    MissingGateRightHandSide,
+    #[error("Non boolean value: {0}")]
+    NonBooleanValue(String),
+}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
+    let (start_values, gates) = input.split_once("\n\n").ok_or(Error::MissingBlankLine)?;
+    let mut gates = gates
+        .lines()
+        .map(parse_logic_gate)
+        .collect::<Result<Vec<_>, Error>>()?;
     let mut values = HashMap::new();
 
     for line in start_values.lines() {
-        let (name, value) = line.split_once(": ").unwrap();
+        let (name, value) = line
+            .split_once(": ")
+            .ok_or(Error::MissingInputValueDelimiter)?;
         let value = match value {
             "1" => true,
             "0" => false,
-            _ => panic!("Non boolean value!"),
+            _ => return Err(Error::NonBooleanValue(value.to_owned())),
         };
         values.insert(name, value);
     }
@@ -34,10 +60,10 @@ pub fn solve(input: &str) -> usize {
         .filter(|(name, _)| name.starts_with("z"))
         .collect::<Vec<_>>();
     values.sort();
-    values
+    Ok(values
         .into_iter()
         .rev()
-        .fold(0, |acc, (_, value)| acc * 2 + value as usize)
+        .fold(0, |acc, (_, value)| acc * 2 + value as usize))
 }
 
 enum LogicOperation {
@@ -53,23 +79,25 @@ struct LogicGate<'a> {
     operation: LogicOperation,
 }
 
-fn parse_logic_gate(line: &str) -> LogicGate<'_> {
-    let (gate, output) = line.split_once(" -> ").unwrap();
+fn parse_logic_gate(line: &str) -> Result<LogicGate<'_>, Error> {
+    let (gate, output) = line
+        .split_once(" -> ")
+        .ok_or(Error::MissingGateOutputDelimiter)?;
     let mut parts = gate.split_whitespace();
-    let lhs = parts.next().unwrap();
-    let operation = match parts.next().unwrap() {
+    let lhs = parts.next().ok_or(Error::MissingGateLeftHandSide)?;
+    let operation = match parts.next().ok_or(Error::MissingGateOperation)? {
         "AND" => LogicOperation::And,
         "OR" => LogicOperation::Or,
         "XOR" => LogicOperation::Xor,
-        _ => unreachable!(),
+        op => return Err(Error::InvalidGateOperation(op.to_owned())),
     };
-    let rhs = parts.next().unwrap();
-    LogicGate {
+    let rhs = parts.next().ok_or(Error::MissingGateRightHandSide)?;
+    Ok(LogicGate {
         lhs,
         rhs,
         output,
         operation,
-    }
+    })
 }
 
 fn apply_logic_gate<'a>(
@@ -95,13 +123,13 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 4);
     }
 
     #[test]
     fn example2() {
-        let result = solve(EXAMPLE2);
+        let result = solve(EXAMPLE2).unwrap();
         assert_eq!(result, 2024);
     }
 
@@ -110,7 +138,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }

@@ -1,4 +1,9 @@
-pub fn solve(input: &str) -> usize {
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {}
+
+pub fn solve(input: &str) -> Result<usize, Error> {
     let mut keys = vec![];
     let mut locks = vec![];
 
@@ -31,14 +36,15 @@ pub fn solve(input: &str) -> usize {
         }
     }
 
-    keys.into_iter()
+    Ok(keys
+        .into_iter()
         .map(|key| {
             locks
                 .iter()
                 .filter(|lock| (0..5).all(|index| key[index] + lock[index] <= 5))
                 .count()
         })
-        .sum()
+        .sum())
 }
 
 #[cfg(test)]
@@ -49,7 +55,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let result = solve(EXAMPLE);
+        let result = solve(EXAMPLE).unwrap();
         assert_eq!(result, 3);
     }
 
@@ -58,7 +64,7 @@ mod tests {
     #[test]
     fn result() {
         let expected = include_str!("../part1.txt").trim().parse().unwrap();
-        let result = solve(super::super::INPUT);
+        let result = solve(super::super::INPUT).unwrap();
         assert_eq!(result, expected);
     }
 }
